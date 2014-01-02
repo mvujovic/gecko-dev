@@ -257,25 +257,6 @@ nsSVGFilterFrame::GetPostFilterDirtyArea(nsIFrame *aFilteredFrame,
 }
 
 nsRect
-nsSVGFilterFrame::GetPreFilterNeededArea(nsIFrame *aFilteredFrame,
-                                         const nsRect& aPostFilterDirtyRect)
-{
-  nsSVGFilterInstance instance(aFilteredFrame, this, nullptr,
-                               &aPostFilterDirtyRect, nullptr, nullptr);
-  if (!instance.IsInitialized()) {
-    return nsRect();
-  }
-  // Now we can ask the instance to compute the area of the source
-  // that's needed.
-  nsIntRect neededRect;
-  nsresult rv = instance.ComputeSourceNeededRect(&neededRect);
-  if (NS_SUCCEEDED(rv)) {
-    return TransformFilterSpaceToFrameSpace(&instance, &neededRect);
-  }
-  return nsRect();
-}
-
-nsRect
 nsSVGFilterFrame::GetPostFilterBounds(nsIFrame *aFilteredFrame,
                                       const gfxRect *aOverrideBBox,
                                       const nsRect *aPreFilterBounds)

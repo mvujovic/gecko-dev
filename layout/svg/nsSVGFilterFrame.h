@@ -79,15 +79,6 @@ public:
                                 const nsRect& aPreFilterDirtyRect);
 
   /**
-   * Returns the pre-filter area that is needed from aFilteredFrame when the
-   * given post-filter area needs to be repainted.
-   * @param aPostFilterDirtyRect The post-filter area that is dirty, relative
-   *   to aFilteredFrame, in app units.
-   */
-  nsRect GetPreFilterNeededArea(nsIFrame *aFilteredFrame,
-                                const nsRect& aPostFilterDirtyRect);
-
-  /**
    * Returns the post-filter visual overflow rect (paint bounds) of
    * aFilteredFrame.
    * @param aOverrideBBox A user space rect, in user units, that should be used

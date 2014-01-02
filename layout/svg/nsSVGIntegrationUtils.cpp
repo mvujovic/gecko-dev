@@ -16,6 +16,7 @@
 #include "nsSVGEffects.h"
 #include "nsSVGElement.h"
 #include "nsSVGFilterFrame.h"
+#include "nsSVGFilterInstance.h"
 #include "nsSVGFilterPaintCallback.h"
 #include "nsSVGMaskFrame.h"
 #include "nsSVGPaintServerFrame.h"
@@ -333,6 +334,19 @@ nsSVGIntegrationUtils::AdjustInvalidAreaForSVGEffects(nsIFrame* aFrame,
   return result.ToOutsidePixels(appUnitsPerDevPixel);
 }
 
+static nsRect
+TransformFilterSpaceToFrameSpace(nsSVGFilterInstance *aInstance,
+                                 nsIntRect *aRect)
+{
+  if (aRect->IsEmpty()) {
+    return nsRect();
+  }
+  gfxMatrix m = aInstance->GetFilterSpaceToFrameSpaceInCSSPxTransform();
+  gfxRect r(aRect->x, aRect->y, aRect->width, aRect->height);
+  r = m.TransformBounds(r);
+  return nsLayoutUtils::RoundGfxRectToAppRect(r, aInstance->AppUnitsPerCSSPixel());
+}
+
 nsRect
 nsSVGIntegrationUtils::GetRequiredSourceForInvalidArea(nsIFrame* aFrame,
                                                        const nsRect& aDirtyRect)
@@ -351,9 +365,22 @@ nsSVGIntegrationUtils::GetRequiredSourceForInvalidArea(nsIFrame* aFrame,
     aFrame->GetOffsetTo(firstFrame) + GetOffsetToUserSpace(firstFrame);
   nsRect postEffectsRect = aDirtyRect + toUserSpace;
 
-  // Return ther result, relative to aFrame, not in user space:
-  return filterFrame->GetPreFilterNeededArea(firstFrame, postEffectsRect) -
-           toUserSpace;
+  // GetPreFilterNeededArea
+  nsSVGFilterInstance instance(firstFrame, filterFrame, nullptr,
+                               &postEffectsRect, nullptr, nullptr);
+  if (!instance.IsInitialized()) {
+    return nsRect();
+  }
+
+  // Now we can ask the instance to compute the area of the source
+  // that's needed.
+  nsIntRect neededRect;
+  nsresult rv = instance.ComputeSourceNeededRect(&neededRect);
+  if (NS_SUCCEEDED(rv)) {
+    // Return the result, relative to aFrame, not in user space:
+    return TransformFilterSpaceToFrameSpace(&instance, &neededRect) - toUserSpace;
+  }
+  return nsRect();
 }
 
 bool

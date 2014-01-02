@@ -57,18 +57,6 @@ public:
                               nsIAtom*        aAttribute,
                               int32_t         aModType) MOZ_OVERRIDE;
 
-  /**
-   * Paint the given filtered frame.
-   * @param aDirtyArea The area than needs to be painted, in aFilteredFrame's
-   *   frame space (i.e. relative to its origin, the top-left corner of its
-   *   border box).
-   */
-  nsresult PaintFilteredFrame(nsRenderingContext *aContext,
-                              nsIFrame *aFilteredFrame,
-                              nsSVGFilterPaintCallback *aPaintCallback,
-                              const nsRect* aDirtyArea,
-                              nsIFrame* aTransformRoot);
-
 #ifdef DEBUG
   virtual void Init(nsIContent*      aContent,
                     nsIFrame*        aParent,

@@ -885,7 +885,14 @@ nsSVGUtils::PaintFrameWithEffects(nsRenderingContext *aContext,
       dirtyRect = &tmpDirtyRect;
     }
     SVGPaintCallback paintCallback;
-    filterFrame->PaintFilteredFrame(aContext, aFrame, &paintCallback, dirtyRect, aTransformRoot);
+
+    // PaintFilteredFrame
+    nsSVGFilterInstance instance(aFrame, filterFrame, &paintCallback,
+                                 dirtyRect, nullptr, nullptr, nullptr,
+                                 aTransformRoot);
+    if (instance.IsInitialized()) {
+      instance.Render(aContext->ThebesContext());
+    }
   } else {
     svgChildFrame->PaintSVG(aContext, aDirtyRect, aTransformRoot);
   }

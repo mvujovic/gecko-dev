@@ -577,7 +577,14 @@ nsSVGIntegrationUtils::PaintFramesWithEffects(nsRenderingContext* aCtx,
     RegularFramePaintCallback callback(aBuilder, aLayerManager,
                                        offsetWithoutSVGGeomFramePos);
     nsRect dirtyRect = aDirtyRect - offset;
-    filterFrame->PaintFilteredFrame(aCtx, aFrame, &callback, &dirtyRect, nullptr);
+
+    // PaintFilteredFrame
+    nsSVGFilterInstance instance(aFrame, filterFrame, &callback,
+                                 &dirtyRect, nullptr, nullptr, nullptr,
+                                 nullptr);
+    if (instance.IsInitialized()) {
+      instance.Render(aCtx->ThebesContext());
+    }
   } else {
     gfx->SetMatrix(matrixAutoSaveRestore.Matrix());
     aLayerManager->EndTransaction(FrameLayerBuilder::DrawThebesLayer, aBuilder);

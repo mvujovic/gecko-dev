@@ -203,22 +203,6 @@ nsSVGFilterFrame::AttributeChanged(int32_t  aNameSpaceID,
                                                 aAttribute, aModType);
 }
 
-nsresult
-nsSVGFilterFrame::PaintFilteredFrame(nsRenderingContext *aContext,
-                                     nsIFrame *aFilteredFrame,
-                                     nsSVGFilterPaintCallback *aPaintCallback,
-                                     const nsRect *aDirtyArea,
-                                     nsIFrame* aTransformRoot)
-{
-  nsSVGFilterInstance instance(aFilteredFrame, this, aPaintCallback,
-                               aDirtyArea, nullptr, nullptr, nullptr,
-                               aTransformRoot);
-  if (!instance.IsInitialized()) {
-    return NS_OK;
-  }
-  return instance.Render(aContext->ThebesContext());
-}
-
 static nsRect
 TransformFilterSpaceToFrameSpace(nsSVGFilterInstance *aInstance,
                                  nsIntRect *aRect)

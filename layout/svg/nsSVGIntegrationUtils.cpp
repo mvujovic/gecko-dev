@@ -214,6 +214,19 @@ nsSVGIntegrationUtils::GetSVGBBoxForNonSVGFrame(nsIFrame* aNonSVGFrame)
            aNonSVGFrame->PresContext()->AppUnitsPerCSSPixel());
 }
 
+static nsRect
+TransformFilterSpaceToFrameSpace(nsSVGFilterInstance *aInstance,
+                                 nsIntRect *aRect)
+{
+  if (aRect->IsEmpty()) {
+    return nsRect();
+  }
+  gfxMatrix m = aInstance->GetFilterSpaceToFrameSpaceInCSSPxTransform();
+  gfxRect r(aRect->x, aRect->y, aRect->width, aRect->height);
+  r = m.TransformBounds(r);
+  return nsLayoutUtils::RoundGfxRectToAppRect(r, aInstance->AppUnitsPerCSSPixel());
+}
+
 // XXX Since we're called during reflow, this method is broken for frames with
 // continuations. When we're called for a frame with continuations, we're
 // called for each continuation in turn as it's reflowed. However, it isn't
@@ -276,11 +289,24 @@ nsRect
       aFrame->PresContext()->AppUnitsPerCSSPixel());
   overrideBBox.RoundOut();
 
-  nsRect overflowRect =
-    filterFrame->GetPostFilterBounds(firstFrame, &overrideBBox);
+  // GetPostFilterBounds.
+  MOZ_ASSERT(!(aFrame->GetStateBits() & NS_FRAME_SVG_LAYOUT) ||
+             !(aFrame->GetStateBits() & NS_FRAME_IS_NONDISPLAY),
+             "Non-display SVG do not maintain visual overflow rects");
 
-  // Return overflowRect relative to aFrame, rather than "user space":
-  return overflowRect - (aFrame->GetOffsetTo(firstFrame) + firstFrameToUserSpace);
+  nsSVGFilterInstance instance(aFrame, filterFrame, nullptr, nullptr, nullptr,
+                               nullptr, &overrideBBox);
+  if (!instance.IsInitialized()) {
+    return nsRect();
+  }
+  nsIntRect bbox;
+  nsresult rv = instance.ComputePostFilterExtents(&bbox);
+  if (NS_SUCCEEDED(rv)) {
+    // Return overflowRect relative to aFrame, rather than "user space":
+    return TransformFilterSpaceToFrameSpace(&instance, &bbox)
+      - (aFrame->GetOffsetTo(firstFrame) + firstFrameToUserSpace);
+  }
+  return nsRect();
 }
 
 nsIntRect
@@ -332,19 +358,6 @@ nsSVGIntegrationUtils::AdjustInvalidAreaForSVGEffects(nsIFrame* aFrame,
            toUserSpace;
   // Return the result, in pixels relative to the reference frame.
   return result.ToOutsidePixels(appUnitsPerDevPixel);
-}
-
-static nsRect
-TransformFilterSpaceToFrameSpace(nsSVGFilterInstance *aInstance,
-                                 nsIntRect *aRect)
-{
-  if (aRect->IsEmpty()) {
-    return nsRect();
-  }
-  gfxMatrix m = aInstance->GetFilterSpaceToFrameSpaceInCSSPxTransform();
-  gfxRect r(aRect->x, aRect->y, aRect->width, aRect->height);
-  r = m.TransformBounds(r);
-  return nsLayoutUtils::RoundGfxRectToAppRect(r, aInstance->AppUnitsPerCSSPixel());
 }
 
 nsRect

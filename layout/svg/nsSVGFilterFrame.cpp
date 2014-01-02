@@ -256,29 +256,6 @@ nsSVGFilterFrame::GetPostFilterDirtyArea(nsIFrame *aFilteredFrame,
   return nsRect();
 }
 
-nsRect
-nsSVGFilterFrame::GetPostFilterBounds(nsIFrame *aFilteredFrame,
-                                      const gfxRect *aOverrideBBox,
-                                      const nsRect *aPreFilterBounds)
-{
-  MOZ_ASSERT(!(aFilteredFrame->GetStateBits() & NS_FRAME_SVG_LAYOUT) ||
-             !(aFilteredFrame->GetStateBits() & NS_FRAME_IS_NONDISPLAY),
-             "Non-display SVG do not maintain visual overflow rects");
-
-  nsSVGFilterInstance instance(aFilteredFrame, this, nullptr, nullptr,
-                               aPreFilterBounds, aPreFilterBounds,
-                               aOverrideBBox);
-  if (!instance.IsInitialized()) {
-    return nsRect();
-  }
-  nsIntRect bbox;
-  nsresult rv = instance.ComputePostFilterExtents(&bbox);
-  if (NS_SUCCEEDED(rv)) {
-    return TransformFilterSpaceToFrameSpace(&instance, &bbox);
-  }
-  return nsRect();
-}
-
 #ifdef DEBUG
 void
 nsSVGFilterFrame::Init(nsIContent* aContent,

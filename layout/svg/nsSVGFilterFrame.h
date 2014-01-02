@@ -78,18 +78,6 @@ public:
   nsRect GetPostFilterDirtyArea(nsIFrame *aFilteredFrame,
                                 const nsRect& aPreFilterDirtyRect);
 
-  /**
-   * Returns the post-filter visual overflow rect (paint bounds) of
-   * aFilteredFrame.
-   * @param aOverrideBBox A user space rect, in user units, that should be used
-   *   as aFilteredFrame's bbox ('bbox' is a specific SVG term), if non-null.
-   * @param aPreFilterBounds The pre-filter visual overflow rect of
-   *   aFilteredFrame, if non-null.
-   */
-  nsRect GetPostFilterBounds(nsIFrame *aFilteredFrame,
-                             const gfxRect *aOverrideBBox = nullptr,
-                             const nsRect *aPreFilterBounds = nullptr);
-
 #ifdef DEBUG
   virtual void Init(nsIContent*      aContent,
                     nsIFrame*        aParent,

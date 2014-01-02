@@ -36,6 +36,7 @@
 #include "nsSVGContainerFrame.h"
 #include "nsSVGEffects.h"
 #include "nsSVGFilterFrame.h"
+#include "nsSVGFilterInstance.h"
 #include "nsSVGFilterPaintCallback.h"
 #include "nsSVGForeignObjectFrame.h"
 #include "nsSVGGeometryFrame.h"
@@ -407,12 +408,27 @@ nsSVGUtils::GetPostFilterVisualOverflowRect(nsIFrame *aFrame,
   NS_ABORT_IF_FALSE(aFrame->GetStateBits() & NS_FRAME_SVG_LAYOUT,
                     "Called on invalid frame type");
 
-  nsSVGFilterFrame *filter = nsSVGEffects::GetFilterFrame(aFrame);
-  if (!filter) {
+  nsSVGFilterFrame *filterFrame = nsSVGEffects::GetFilterFrame(aFrame);
+  if (!filterFrame) {
     return aPreFilterRect;
   }
 
-  return filter->GetPostFilterBounds(aFrame, nullptr, &aPreFilterRect);
+  // GetPostFilterBounds
+  MOZ_ASSERT(!(aFrame->GetStateBits() & NS_FRAME_SVG_LAYOUT) ||
+             !(aFrame->GetStateBits() & NS_FRAME_IS_NONDISPLAY),
+             "Non-display SVG do not maintain visual overflow rects");
+
+  nsSVGFilterInstance instance(aFrame, filterFrame, nullptr, nullptr,
+                               &aPreFilterRect, &aPreFilterRect, nullptr);
+  if (!instance.IsInitialized()) {
+    return nsRect();
+  }
+  nsIntRect bbox;
+  nsresult rv = instance.ComputePostFilterExtents(&bbox);
+  if (NS_SUCCEEDED(rv)) {
+    return TransformFilterSpaceToFrameSpace(&instance, &bbox);
+  }
+  return nsRect();
 }
 
 bool

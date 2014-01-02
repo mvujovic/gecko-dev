@@ -19,6 +19,7 @@
 #include "nsReferencedElement.h"
 #include "nsStubMutationObserver.h"
 #include "nsSVGUtils.h"
+#include "nsTArray.h"
 #include "nsTHashtable.h"
 #include "nsTraceRefcnt.h"
 #include "nsURIHashKey.h"
@@ -150,10 +151,9 @@ protected:
   nsIPresShell *mFramePresShell;
 };
 
-class nsSVGFilterProperty :
-  public nsSVGIDRenderingObserver, public nsISVGFilterProperty {
+class nsSVGFilterReference : public nsSVGIDRenderingObserver {
 public:
-  nsSVGFilterProperty(nsIURI *aURI, nsIFrame *aFilteredFrame,
+  nsSVGFilterReference(nsIURI *aURI, nsIFrame *aFilteredFrame,
                       bool aReferenceImage)
     : nsSVGIDRenderingObserver(aURI, aFilteredFrame, aReferenceImage) {}
 
@@ -162,15 +162,34 @@ public:
    */
   nsSVGFilterFrame *GetFilterFrame();
 
+private:
+  // nsSVGIDRenderingObserver
+  virtual void DoUpdate() MOZ_OVERRIDE;
+};
+
+class nsSVGFilterProperty : public nsISVGFilterProperty {
+public:
+  nsSVGFilterProperty(const nsTArray<nsStyleFilter> &filters,
+                      nsIFrame *aFilteredFrame);
+  virtual ~nsSVGFilterProperty();
+
   // nsISupports
   NS_DECL_ISUPPORTS
+
+  // TODO(mvujovic): Remove GetFilterFrame.
+  nsSVGFilterFrame *GetFilterFrame() { return mReferences.Length() > 0 ? mReferences[0]->GetFilterFrame() : nullptr; }
+  const nsTArray<nsStyleFilter>& GetFilters() { return mFilters; }
+  bool IsInObserverList();
 
   // nsISVGFilterProperty
   virtual void Invalidate() MOZ_OVERRIDE { DoUpdate(); }
 
 private:
-  // nsSVGRenderingObserver
-  virtual void DoUpdate() MOZ_OVERRIDE;
+  void DoUpdate();
+
+  nsTArray<nsSVGFilterReference*> mReferences;
+  nsTArray<nsStyleFilter> mFilters;
+  nsIFrame* mFilteredFrame;
 };
 
 class nsSVGMarkerProperty : public nsSVGIDRenderingObserver {

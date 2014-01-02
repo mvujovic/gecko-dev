@@ -412,21 +412,21 @@ GetEffectProperty(nsIURI *aURI, nsIFrame *aFrame,
 
 // TODO(mvujovic): Potentially merge this with GetEffectProperty and use void* types.
 static nsSVGFilterProperty*
-GetFilterProperty(const nsTArray<nsStyleFilter> &aFilters, nsIFrame *aFrame)
+GetOrCreateFilterProperty(nsIFrame *aFrame)
 {
-  if (aFilters.Length() <= 0)
+  if (aFrame->StyleSVGReset().mFilters.Length() <= 0)
     return nullptr;
 
   FrameProperties props = aFrame->Properties();
   nsSVGFilterProperty *prop =
-    static_cast<nsSVGFilterProperty>(props.Get(FilterProperty()));
+    static_cast<nsSVGFilterProperty*>(props.Get(nsSVGEffects::FilterProperty()));
   if (prop)
     return prop;
-  prop = new nsSVGFilterProperty(aFilters, aFrame);
+  prop = new nsSVGFilterProperty(aFrame->StyleSVGReset().mFilters, aFrame);
   if (!prop)
     return nullptr;
   NS_ADDREF(prop);
-  props.Set(FilterProperty(), static_cast<nsISupports*>(prop));
+  props.Set(nsSVGEffects::FilterProperty(), static_cast<nsISupports*>(prop));
   return prop;
 }
 
@@ -497,7 +497,7 @@ nsSVGEffects::GetEffectProperties(nsIFrame *aFrame)
 
   EffectProperties result;
   const nsStyleSVGReset *style = aFrame->StyleSVGReset();
-  result.mFilter = GetFilterProperty(style->mFilters, aFrame);
+  result.mFilter = GetOrCreateFilterProperty(aFrame);
   result.mClipPath =
     GetPaintingProperty(style->mClipPath, aFrame, ClipPathProperty());
   result.mMask =
@@ -572,7 +572,7 @@ nsSVGEffects::UpdateEffects(nsIFrame *aFrame)
 
   // Ensure that the filter is repainted correctly
   // We can't do that in DoUpdate as the referenced frame may not be valid
-  GetFilterProperty(aFrame->StyleSVGReset()->mFilters, aFrame);
+  GetOrCreateFilterProperty(aFrame);
 
   if (aFrame->GetType() == nsGkAtoms::svgPathGeometryFrame &&
       static_cast<nsSVGPathGeometryElement*>(aFrame->GetContent())->IsMarkable()) {
@@ -592,7 +592,7 @@ nsSVGEffects::GetFilterProperty(nsIFrame *aFrame)
 {
   NS_ASSERTION(!aFrame->GetPrevContinuation(), "aFrame should be first continuation");
 
-  if (!aFrame->StyleSVGReset()->SingleFilter())
+  if (aFrame->StyleSVGReset()->mFilters.Length() <= 0)
     return nullptr;
 
   return static_cast<nsSVGFilterProperty *>

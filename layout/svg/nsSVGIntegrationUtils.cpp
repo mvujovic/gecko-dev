@@ -354,10 +354,29 @@ nsSVGIntegrationUtils::AdjustInvalidAreaForSVGEffects(nsIFrame* aFrame,
 
   // Adjust the dirty area for effects, and shift it back to being relative to
   // the reference frame.
-  nsRect result = filterFrame->GetPostFilterDirtyArea(firstFrame, preEffectsRect) -
-           toUserSpace;
-  // Return the result, in pixels relative to the reference frame.
-  return result.ToOutsidePixels(appUnitsPerDevPixel);
+
+  // GetPostFilterDirtyArea
+  if (preEffectsRect.IsEmpty()) {
+    return nsIntRect();
+  }
+
+  nsSVGFilterInstance instance(aFrame, filterFrame, nullptr, nullptr,
+                               &preEffectsRect, nullptr);
+  if (!instance.IsInitialized()) {
+    return nsIntRect();
+  }
+  // We've passed in the source's dirty area so the instance knows about it.
+  // Now we can ask the instance to compute the area of the filter output
+  // that's dirty.
+  nsIntRect dirtyRect;
+  nsresult rv = instance.ComputePostFilterDirtyRect(&dirtyRect);
+  if (NS_SUCCEEDED(rv)) {
+    nsRect result = TransformFilterSpaceToFrameSpace(&instance, &dirtyRect)
+      - toUserSpace;
+    // Return the result, in pixels relative to the reference frame.
+    return result.ToOutsidePixels(appUnitsPerDevPixel);
+  }
+  return nsIntRect();
 }
 
 nsRect
@@ -391,7 +410,8 @@ nsSVGIntegrationUtils::GetRequiredSourceForInvalidArea(nsIFrame* aFrame,
   nsresult rv = instance.ComputeSourceNeededRect(&neededRect);
   if (NS_SUCCEEDED(rv)) {
     // Return the result, relative to aFrame, not in user space:
-    return TransformFilterSpaceToFrameSpace(&instance, &neededRect) - toUserSpace;
+    return TransformFilterSpaceToFrameSpace(&instance, &neededRect)
+      - toUserSpace;
   }
   return nsRect();
 }

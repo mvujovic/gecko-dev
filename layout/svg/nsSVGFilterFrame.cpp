@@ -232,30 +232,6 @@ TransformFilterSpaceToFrameSpace(nsSVGFilterInstance *aInstance,
   return nsLayoutUtils::RoundGfxRectToAppRect(r, aInstance->AppUnitsPerCSSPixel());
 }
 
-nsRect
-nsSVGFilterFrame::GetPostFilterDirtyArea(nsIFrame *aFilteredFrame,
-                                         const nsRect& aPreFilterDirtyRect)
-{
-  if (aPreFilterDirtyRect.IsEmpty()) {
-    return nsRect();
-  }
-
-  nsSVGFilterInstance instance(aFilteredFrame, this, nullptr, nullptr,
-                               &aPreFilterDirtyRect, nullptr);
-  if (!instance.IsInitialized()) {
-    return nsRect();
-  }
-  // We've passed in the source's dirty area so the instance knows about it.
-  // Now we can ask the instance to compute the area of the filter output
-  // that's dirty.
-  nsIntRect dirtyRect;
-  nsresult rv = instance.ComputePostFilterDirtyRect(&dirtyRect);
-  if (NS_SUCCEEDED(rv)) {
-    return TransformFilterSpaceToFrameSpace(&instance, &dirtyRect);
-  }
-  return nsRect();
-}
-
 #ifdef DEBUG
 void
 nsSVGFilterFrame::Init(nsIContent* aContent,

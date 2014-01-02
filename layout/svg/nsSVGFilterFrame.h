@@ -69,15 +69,6 @@ public:
                               const nsRect* aDirtyArea,
                               nsIFrame* aTransformRoot);
 
-  /**
-   * Returns the post-filter area that could be dirtied when the given
-   * pre-filter area of aFilteredFrame changes.
-   * @param aPreFilterDirtyRect The pre-filter area of aFilteredFrame that has
-   *   changed, relative to aFilteredFrame, in app units.
-   */
-  nsRect GetPostFilterDirtyArea(nsIFrame *aFilteredFrame,
-                                const nsRect& aPreFilterDirtyRect);
-
 #ifdef DEBUG
   virtual void Init(nsIContent*      aContent,
                     nsIFrame*        aParent,

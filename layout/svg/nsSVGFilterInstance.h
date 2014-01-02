@@ -14,6 +14,7 @@
 #include "nsPoint.h"
 #include "nsRect.h"
 #include "nsSize.h"
+#include "nsSVGFilterFrame.h"
 #include "nsSVGFilters.h"
 #include "nsSVGNumber2.h"
 #include "nsSVGNumberPair.h"
@@ -109,8 +110,20 @@ public:
     mPostFilterDirtyRect(aPostFilterDirtyRect),
     mPreFilterDirtyRect(aPreFilterDirtyRect),
     mPrimitiveUnits(aPrimitiveUnits),
-    mTransformRoot(aTransformRoot) {
+    mTransformRoot(aTransformRoot),
+    mInitialized(true) {
   }
+
+  nsSVGFilterInstance(nsIFrame *aTarget,
+                      nsSVGFilterFrame *aFilterFrame,
+                      nsSVGFilterPaintCallback *aPaint,
+                      const nsRect *aPostFilterDirtyRect,
+                      const nsRect *aPreFilterDirtyRect,
+                      const nsRect *aPreFilterVisualOverflowRectOverride,
+                      const gfxRect *aOverrideBBox = nullptr,
+                      nsIFrame* aTransformRoot = nullptr);
+
+  bool IsInitialized() const { return mInitialized; }
 
   /**
    * Returns the user specified "filter region", in the filtered element's user
@@ -329,6 +342,8 @@ private:
   nsIFrame*               mTransformRoot;
   nsTArray<mozilla::RefPtr<SourceSurface>> mInputImages;
   nsTArray<FilterPrimitiveDescription> mPrimitiveDescriptions;
+
+  bool mInitialized;
 };
 
 #endif

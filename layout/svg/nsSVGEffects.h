@@ -162,6 +162,8 @@ public:
    */
   nsSVGFilterFrame *GetFilterFrame();
 
+  void Invalidate() { DoUpdate(); }
+
 private:
   // nsSVGIDRenderingObserver
   virtual void DoUpdate() MOZ_OVERRIDE;

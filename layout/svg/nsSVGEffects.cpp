@@ -214,6 +214,10 @@ nsSVGRenderingObserver::ContentRemoved(nsIDocument *aDocument,
   DoUpdate();
 }
 
+static nsSVGRenderingObserver *
+CreateFilterReference(nsIURI *aURI, nsIFrame *aFrame, bool aReferenceImage)
+{ return new nsSVGFilterReference(aURI, aFrame, aReferenceImage); }
+
 NS_IMPL_ISUPPORTS_INHERITED0(nsSVGFilterProperty,
                              nsISVGFilterProperty)
 
@@ -253,7 +257,7 @@ nsSVGFilterProperty::DoUpdate()
 {
   // TODO(mvujovic): Move some logic from nsSVGFilterReference::DoUpdate in here possibly.
   for (uint32_t i = 0; i < mReferences.Length(); i++) {
-    mReferences[i]->DoUpdate();
+    mReferences[i]->Invalidate();
   }
 }
 
@@ -374,10 +378,6 @@ nsSVGPaintingProperty::DoUpdate()
 }
 
 static nsSVGRenderingObserver *
-CreateFilterReference(nsIURI *aURI, nsIFrame *aFrame, bool aReferenceImage)
-{ return new nsSVGFilterReference(aURI, aFrame, aReferenceImage); }
-
-static nsSVGRenderingObserver *
 CreateMarkerProperty(nsIURI *aURI, nsIFrame *aFrame, bool aReferenceImage)
 { return new nsSVGMarkerProperty(aURI, aFrame, aReferenceImage); }
 
@@ -414,7 +414,8 @@ GetEffectProperty(nsIURI *aURI, nsIFrame *aFrame,
 static nsSVGFilterProperty*
 GetOrCreateFilterProperty(nsIFrame *aFrame)
 {
-  if (aFrame->StyleSVGReset().mFilters.Length() <= 0)
+  const nsStyleSVGReset* style = aFrame->StyleSVGReset();
+  if (style->mFilters.Length() <= 0)
     return nullptr;
 
   FrameProperties props = aFrame->Properties();
@@ -422,7 +423,7 @@ GetOrCreateFilterProperty(nsIFrame *aFrame)
     static_cast<nsSVGFilterProperty*>(props.Get(nsSVGEffects::FilterProperty()));
   if (prop)
     return prop;
-  prop = new nsSVGFilterProperty(aFrame->StyleSVGReset().mFilters, aFrame);
+  prop = new nsSVGFilterProperty(style->mFilters, aFrame);
   if (!prop)
     return nullptr;
   NS_ADDREF(prop);

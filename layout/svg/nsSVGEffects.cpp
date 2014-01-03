@@ -214,8 +214,8 @@ nsSVGRenderingObserver::ContentRemoved(nsIDocument *aDocument,
   DoUpdate();
 }
 
-NS_IMPL_ISUPPORTS_INHERITED0(nsSVGFilterProperty,
-                             nsISVGFilterProperty)
+NS_IMPL_ISUPPORTS1(nsSVGFilterProperty,
+                   nsISVGFilterProperty)
 
 nsSVGFilterProperty::nsSVGFilterProperty(const nsTArray<nsStyleFilter> &filters,
                                          nsIFrame *aFilteredFrame) :

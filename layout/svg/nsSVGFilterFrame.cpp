@@ -203,19 +203,6 @@ nsSVGFilterFrame::AttributeChanged(int32_t  aNameSpaceID,
                                                 aAttribute, aModType);
 }
 
-static nsRect
-TransformFilterSpaceToFrameSpace(nsSVGFilterInstance *aInstance,
-                                 nsIntRect *aRect)
-{
-  if (aRect->IsEmpty()) {
-    return nsRect();
-  }
-  gfxMatrix m = aInstance->GetFilterSpaceToFrameSpaceInCSSPxTransform();
-  gfxRect r(aRect->x, aRect->y, aRect->width, aRect->height);
-  r = m.TransformBounds(r);
-  return nsLayoutUtils::RoundGfxRectToAppRect(r, aInstance->AppUnitsPerCSSPixel());
-}
-
 #ifdef DEBUG
 void
 nsSVGFilterFrame::Init(nsIContent* aContent,

@@ -214,10 +214,6 @@ nsSVGRenderingObserver::ContentRemoved(nsIDocument *aDocument,
   DoUpdate();
 }
 
-static nsSVGRenderingObserver *
-CreateFilterReference(nsIURI *aURI, nsIFrame *aFrame, bool aReferenceImage)
-{ return new nsSVGFilterReference(aURI, aFrame, aReferenceImage); }
-
 NS_IMPL_ISUPPORTS_INHERITED0(nsSVGFilterProperty,
                              nsISVGFilterProperty)
 
@@ -231,7 +227,7 @@ nsSVGFilterProperty::nsSVGFilterProperty(const nsTArray<nsStyleFilter> &filters,
       continue;
 
     mReferences.AppendElement(
-      CreateFilterReference(mFilters[i].GetURL(), mFilteredFrame, false));
+      new nsSVGFilterReference(mFilters[i].GetURL(), mFilteredFrame, false));
   }
 }
 

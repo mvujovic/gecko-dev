@@ -4798,7 +4798,7 @@ nsDisplaySVGEffects::BuildLayer(nsDisplayListBuilder* aBuilder,
   bool isOK = true;
   effectProperties.GetClipPathFrame(&isOK);
   effectProperties.GetMaskFrame(&isOK);
-  effectProperties.GetFilterFrame(&isOK);
+  isOK = isOK && effectProperties.HasNoFilterOrHasValidFilter();
 
   if (!isOK) {
     return nullptr;
@@ -4869,7 +4869,7 @@ nsDisplaySVGEffects::PrintEffects(FILE* aOutput)
     fprintf_stderr(aOutput, "clip(%s)", clipPathFrame->IsTrivial() ? "trivial" : "non-trivial");
     first = false;
   }
-  if (effectProperties.GetFilterFrame(&isOK)) {
+  if (effectProperties.HasValidFilter()) {
     if (!first) {
       fprintf_stderr(aOutput, ", ");
     }

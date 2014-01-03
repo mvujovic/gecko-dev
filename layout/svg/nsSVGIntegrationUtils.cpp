@@ -272,7 +272,7 @@ nsRect
   nsSVGEffects::EffectProperties effectProperties =
     nsSVGEffects::GetEffectProperties(firstFrame);
   nsSVGFilterFrame *filterFrame = effectProperties.mFilter ?
-    effectProperties.mFilter->GetFilterFrame() : nullptr;
+    effectProperties.mFilter->GetFirstFilterFrame() : nullptr;
   if (!filterFrame)
     return aPreEffectsOverflowRect;
 
@@ -328,13 +328,13 @@ nsSVGIntegrationUtils::AdjustInvalidAreaForSVGEffects(nsIFrame* aFrame,
     return aInvalidRect;
 
   nsSVGFilterProperty *prop = nsSVGEffects::GetFilterProperty(firstFrame);
-  if (!prop || !prop->IsInObserverList()) {
+  if (!prop || !prop->IsInObserverLists()) {
     return aInvalidRect;
   }
 
   int32_t appUnitsPerDevPixel = aFrame->PresContext()->AppUnitsPerDevPixel();
 
-  nsSVGFilterFrame* filterFrame = prop->GetFilterFrame();
+  nsSVGFilterFrame* filterFrame = effectProperties.GetFirstFilterFrame();
   if (!filterFrame) {
     // The frame is either not there or not currently available,
     // perhaps because we're in the middle of tearing stuff down.
@@ -388,7 +388,7 @@ nsSVGIntegrationUtils::GetRequiredSourceForInvalidArea(nsIFrame* aFrame,
   nsIFrame* firstFrame =
     nsLayoutUtils::FirstContinuationOrSpecialSibling(aFrame);
   nsSVGFilterFrame* filterFrame =
-    nsSVGEffects::GetFilterFrame(firstFrame);
+    nsSVGEffects::GetFirstFilterFrame(firstFrame);
   if (!filterFrame)
     return aDirtyRect;
   
@@ -516,8 +516,8 @@ nsSVGIntegrationUtils::PaintFramesWithEffects(nsRenderingContext* aCtx,
 
   bool isOK = true;
   nsSVGClipPathFrame *clipPathFrame = effectProperties.GetClipPathFrame(&isOK);
-  nsSVGFilterFrame *filterFrame = effectProperties.GetFilterFrame(&isOK);
   nsSVGMaskFrame *maskFrame = effectProperties.GetMaskFrame(&isOK);
+  isOK = isOK && effectProperties.HasNoFilterOrHasValidFilter();
   if (!isOK) {
     return; // Some resource is missing. We shouldn't paint anything.
   }
@@ -573,13 +573,13 @@ nsSVGIntegrationUtils::PaintFramesWithEffects(nsRenderingContext* aCtx,
   }
 
   /* Paint the child */
-  if (filterFrame) {
+  if (effectProperties.HasValidFilter()) {
     RegularFramePaintCallback callback(aBuilder, aLayerManager,
                                        offsetWithoutSVGGeomFramePos);
     nsRect dirtyRect = aDirtyRect - offset;
 
     // PaintFilteredFrame
-    nsSVGFilterInstance instance(aFrame, filterFrame, &callback,
+    nsSVGFilterInstance instance(aFrame, effectProperties.GetFirstFilterFrame(), &callback,
                                  &dirtyRect, nullptr, nullptr, nullptr,
                                  nullptr);
     if (instance.IsInitialized()) {

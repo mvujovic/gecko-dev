@@ -408,7 +408,7 @@ nsSVGUtils::GetPostFilterVisualOverflowRect(nsIFrame *aFrame,
   NS_ABORT_IF_FALSE(aFrame->GetStateBits() & NS_FRAME_SVG_LAYOUT,
                     "Called on invalid frame type");
 
-  nsSVGFilterFrame *filterFrame = nsSVGEffects::GetFilterFrame(aFrame);
+  nsSVGFilterFrame *filterFrame = nsSVGEffects::GetFirstFilterFrame(aFrame);
   if (!filterFrame) {
     return aPreFilterRect;
   }
@@ -760,8 +760,7 @@ nsSVGUtils::PaintFrameWithEffects(nsRenderingContext *aContext,
   nsSVGEffects::EffectProperties effectProperties =
     nsSVGEffects::GetEffectProperties(aFrame);
 
-  bool isOK = true;
-  nsSVGFilterFrame *filterFrame = effectProperties.GetFilterFrame(&isOK);
+  bool isOK = effectProperties.HasNoFilterOrHasValidFilter();
 
   if (aDirtyRect &&
       !(aFrame->GetStateBits() & NS_FRAME_IS_NONDISPLAY)) {
@@ -862,7 +861,7 @@ nsSVGUtils::PaintFrameWithEffects(nsRenderingContext *aContext,
   }
 
   /* Paint the child */
-  if (filterFrame) {
+  if (effectProperties.HasValidFilter()) {
     nsRect* dirtyRect = nullptr;
     nsRect tmpDirtyRect;
     if (aDirtyRect) {
@@ -887,7 +886,7 @@ nsSVGUtils::PaintFrameWithEffects(nsRenderingContext *aContext,
     SVGPaintCallback paintCallback;
 
     // PaintFilteredFrame
-    nsSVGFilterInstance instance(aFrame, filterFrame, &paintCallback,
+    nsSVGFilterInstance instance(aFrame, effectProperties.GetFirstFilterFrame(), &paintCallback,
                                  dirtyRect, nullptr, nullptr, nullptr,
                                  aTransformRoot);
     if (instance.IsInitialized()) {

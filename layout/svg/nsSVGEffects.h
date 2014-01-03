@@ -155,18 +155,18 @@ class nsSVGFilterReference : public nsSVGIDRenderingObserver {
 public:
   nsSVGFilterReference(nsIURI *aURI, nsIFrame *aFilteredFrame,
                       bool aReferenceImage)
-    : nsSVGIDRenderingObserver(aURI, aFilteredFrame, aReferenceImage) {}
+    : nsSVGIDRenderingObserver(aURI, aFilteredFrame, aReferenceImage), mURL(aURI) {}
 
-  /**
-   * @return the filter frame, or null if there is no filter frame
-   */
-  nsSVGFilterFrame *GetFilterFrame();
-
+  nsIURI* GetURL() { return mURL; };
+  nsSVGFilterFrame* GetFilterFrame();
+  bool ReferencesValidResource() { return GetFilterFrame(); }
   void Invalidate() { DoUpdate(); }
 
 private:
   // nsSVGIDRenderingObserver
   virtual void DoUpdate() MOZ_OVERRIDE;
+
+  nsIURI* mURL;
 };
 
 class nsSVGFilterProperty : public nsISVGFilterProperty {
@@ -175,16 +175,23 @@ public:
                       nsIFrame *aFilteredFrame);
   virtual ~nsSVGFilterProperty();
 
-  // nsISupports
-  NS_DECL_ISUPPORTS
 
-  // TODO(mvujovic): Remove GetFilterFrame.
-  nsSVGFilterFrame *GetFilterFrame() { return mReferences.Length() > 0 ? mReferences[0]->GetFilterFrame() : nullptr; }
   const nsTArray<nsStyleFilter>& GetFilters() { return mFilters; }
-  bool IsInObserverList();
+  nsSVGFilterFrame* GetFilterFrame(const nsStyleFilter& nsStyleFilter);
+  bool ReferencesValidResources();
+  bool IsInObserverLists() const;
 
   // nsISVGFilterProperty
   virtual void Invalidate() MOZ_OVERRIDE { DoUpdate(); }
+
+  // nsISupports
+  NS_DECL_ISUPPORTS
+
+  // TODO(mvujovic): Remove
+  nsSVGFilterFrame* GetFirstFilterFrame()
+  {
+    return mReferences.Length() > 0 ? mReferences[0]->GetFilterFrame() : nullptr;
+  }
 
 private:
   void DoUpdate();
@@ -348,20 +355,19 @@ public:
      * Otherwise *aOK is untouched.
      */
     nsSVGMaskFrame *GetMaskFrame(bool *aOK);
-    /**
-     * @return the filter frame, or null if there is no filter frame
-     * @param aOK if a filter was specified but the designated element
-     * does not exist or is an element of the wrong type, *aOK is set
-     * to false. Otherwise *aOK is untouched.
-     */
-    nsSVGFilterFrame *GetFilterFrame(bool *aOK) {
-      if (!mFilter)
-        return nullptr;
-      nsSVGFilterFrame *filter = mFilter->GetFilterFrame();
-      if (!filter) {
-        *aOK = false;
-      }
-      return filter;
+
+    bool HasValidFilter() {
+      return mFilter && mFilter->ReferencesValidResources();
+    }
+
+    bool HasNoFilterOrHasValidFilter() {
+      return !mFilter || mFilter->ReferencesValidResources();
+    }
+
+    // TODO(mvujovic): Remove
+    nsSVGFilterFrame* GetFirstFilterFrame()
+    {
+      return mFilter ? mFilter->GetFirstFilterFrame() : nullptr;
     }
   };
 
@@ -389,9 +395,9 @@ public:
    * @param aFrame should be the first continuation
    */
   static nsSVGFilterProperty *GetFilterProperty(nsIFrame *aFrame);
-  static nsSVGFilterFrame *GetFilterFrame(nsIFrame *aFrame) {
+  static nsSVGFilterFrame *GetFirstFilterFrame(nsIFrame *aFrame) {
     nsSVGFilterProperty *prop = GetFilterProperty(aFrame);
-    return prop ? prop->GetFilterFrame() : nullptr;
+    return prop ? prop->GetFirstFilterFrame() : nullptr;
   }
 
   /**

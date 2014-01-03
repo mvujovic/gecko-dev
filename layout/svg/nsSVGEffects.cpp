@@ -238,8 +238,29 @@ nsSVGFilterProperty::~nsSVGFilterProperty()
   }
 }
 
+nsSVGFilterFrame* 
+nsSVGFilterProperty::GetFilterFrame(const nsStyleFilter& nsStyleFilter)
+{
+  // Look up the filter reference by URL.
+  for (uint32_t i = 0; i < mReferences.Length(); i++) {
+    if (mReferences[i]->GetURL() == nsStyleFilter.GetURL())
+      return mReferences[i]->GetFilterFrame();
+  }
+  return nullptr;
+}
+
 bool
-nsSVGFilterProperty::IsInObserverList()
+nsSVGFilterProperty::ReferencesValidResources()
+{
+  for (uint32_t i = 0; i < mReferences.Length(); i++) {
+    if (!mReferences[i]->ReferencesValidResource())
+      return false;
+  }
+  return true;
+}
+
+bool
+nsSVGFilterProperty::IsInObserverLists() const
 {
   for (uint32_t i = 0; i < mReferences.Length(); i++) {
     if (!mReferences[i]->IsInObserverList())

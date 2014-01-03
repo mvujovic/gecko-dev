@@ -708,14 +708,7 @@ nsSVGFilterInstance::BuildSourceImage(gfxASurface* aTargetSurface,
 nsresult
 nsSVGFilterInstance::Render(gfxContext* aContext)
 {
-  nsresult rv = BuildPrimitives();
-  if (NS_FAILED(rv))
-    return rv;
-
-  if (mPrimitiveDescriptions.IsEmpty()) {
-    // Nothing should be rendered.
-    return NS_OK;
-  }
+  NS_ASSERTION(mInitialized, "filter instance must be initialized");
 
   nsIntRect filterRect = mPostFilterDirtyRect.Intersect(mFilterSpaceBounds);
 
@@ -743,7 +736,7 @@ nsSVGFilterInstance::Render(gfxContext* aContext)
 
   ComputeNeededBoxes();
 
-  rv = BuildSourceImage(resultImage, resultImageDT);
+  nsresult rv = BuildSourceImage(resultImage, resultImageDT);
   if (NS_FAILED(rv))
     return rv;
   rv = BuildSourcePaints(resultImage, resultImageDT);
@@ -775,17 +768,10 @@ nsSVGFilterInstance::Render(gfxContext* aContext)
 nsresult
 nsSVGFilterInstance::ComputePostFilterDirtyRect(nsIntRect* aPostFilterDirtyRect)
 {
+  NS_ASSERTION(mInitialized, "filter instance must be initialized");
+
   *aPostFilterDirtyRect = nsIntRect();
   if (mPreFilterDirtyRect.IsEmpty()) {
-    return NS_OK;
-  }
-
-  nsresult rv = BuildPrimitives();
-  if (NS_FAILED(rv))
-    return rv;
-
-  if (mPrimitiveDescriptions.IsEmpty()) {
-    // Nothing should be rendered, so nothing can be dirty.
     return NS_OK;
   }
 
@@ -801,15 +787,9 @@ nsSVGFilterInstance::ComputePostFilterDirtyRect(nsIntRect* aPostFilterDirtyRect)
 nsresult
 nsSVGFilterInstance::ComputePostFilterExtents(nsIntRect* aPostFilterExtents)
 {
+  NS_ASSERTION(mInitialized, "filter instance must be initialized");
+
   *aPostFilterExtents = nsIntRect();
-
-  nsresult rv = BuildPrimitives();
-  if (NS_FAILED(rv))
-    return rv;
-
-  if (mPrimitiveDescriptions.IsEmpty()) {
-    return NS_OK;
-  }
 
   nsIntRect sourceBoundsInt;
   gfxRect sourceBounds = UserSpaceToFilterSpace(mTargetBBox);

@@ -271,9 +271,7 @@ nsRect
     nsLayoutUtils::FirstContinuationOrSpecialSibling(aFrame);
   nsSVGEffects::EffectProperties effectProperties =
     nsSVGEffects::GetEffectProperties(firstFrame);
-  nsSVGFilterFrame *filterFrame = effectProperties.mFilter ?
-    effectProperties.mFilter->GetFirstFilterFrame() : nullptr;
-  if (!filterFrame)
+  if (!effectProperties.HasValidFilter())
     return aPreEffectsOverflowRect;
 
   // Create an override bbox - see comment above:
@@ -294,7 +292,7 @@ nsRect
              !(aFrame->GetStateBits() & NS_FRAME_IS_NONDISPLAY),
              "Non-display SVG do not maintain visual overflow rects");
 
-  nsSVGFilterInstance instance(aFrame, filterFrame, nullptr, nullptr, nullptr,
+  nsSVGFilterInstance instance(aFrame, aFrame->StyleSVGReset()->mFilters, nullptr, nullptr, nullptr,
                                nullptr, &overrideBBox);
   if (!instance.IsInitialized()) {
     return nsRect();

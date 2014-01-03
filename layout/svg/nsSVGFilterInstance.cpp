@@ -98,8 +98,52 @@ nsSVGFilterInstance::nsSVGFilterInstance(
   const nsRect *aPreFilterDirtyRect,
   const nsRect *aPreFilterVisualOverflowRectOverride,
   const gfxRect *aOverrideBBox,
-  nsIFrame* aTransformRoot) : mInitialized(false)
+  nsIFrame* aTransformRoot)
 {
+  Initialize(aTarget,
+             aFilterFrame,
+             aPaint,
+             aPostFilterDirtyRect,
+             aPreFilterDirtyRect,
+             aPreFilterVisualOverflowRectOverride,
+             aOverrideBBox,
+             aTransformRoot);
+}
+
+nsSVGFilterInstance::nsSVGFilterInstance(
+  nsIFrame *aTarget,
+  const nsTArray<nsStyleFilter>& aFilters,
+  nsSVGFilterPaintCallback *aPaint,
+  const nsRect *aPostFilterDirtyRect,
+  const nsRect *aPreFilterDirtyRect,
+  const nsRect *aPreFilterVisualOverflowRectOverride,
+  const gfxRect *aOverrideBBox,
+  nsIFrame* aTransformRoot)
+{
+  nsSVGFilterFrame* filterFrame = nsSVGEffects::GetFirstFilterFrame(aTarget);
+  Initialize(aTarget,
+             filterFrame,
+             aPaint,
+             aPostFilterDirtyRect,
+             aPreFilterDirtyRect,
+             aPreFilterVisualOverflowRectOverride,
+             aOverrideBBox,
+             aTransformRoot);
+}
+
+void
+nsSVGFilterInstance::Initialize(
+  nsIFrame *aTarget,
+  nsSVGFilterFrame *aFilterFrame,
+  nsSVGFilterPaintCallback *aPaint,
+  const nsRect *aPostFilterDirtyRect,
+  const nsRect *aPreFilterDirtyRect,
+  const nsRect *aPreFilterVisualOverflowRectOverride,
+  const gfxRect *aOverrideBBox,
+  nsIFrame* aTransformRoot)
+{
+  mInitialized = false;
+
   const SVGFilterElement *filter = aFilterFrame->GetFilterContent();
 
   uint16_t filterUnits =
@@ -244,6 +288,17 @@ nsSVGFilterInstance::nsSVGFilterInstance(
   mPreFilterDirtyRect = preFilterDirtyRect;
   mPrimitiveUnits = primitiveUnits;
   mTransformRoot = aTransformRoot;
+
+  // Build the primitives.
+  nsresult rv = BuildPrimitives();
+  if (NS_FAILED(rv)) {
+    return;
+  }
+
+  if (mPrimitiveDescriptions.IsEmpty()) {
+    // Nothing should be rendered, so nothing is needed.
+    return;
+  }
 
   mInitialized = true;
 }
@@ -775,14 +830,7 @@ nsSVGFilterInstance::ComputePostFilterExtents(nsIntRect* aPostFilterExtents)
 nsresult
 nsSVGFilterInstance::ComputeSourceNeededRect(nsIntRect* aDirty)
 {
-  nsresult rv = BuildPrimitives();
-  if (NS_FAILED(rv))
-    return rv;
-
-  if (mPrimitiveDescriptions.IsEmpty()) {
-    // Nothing should be rendered, so nothing is needed.
-    return NS_OK;
-  }
+  NS_ASSERTION(mInitialized, "filter instance must be initialized");
 
   ComputeNeededBoxes();
   *aDirty = mSourceGraphic.mNeededBounds;

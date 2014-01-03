@@ -59,61 +59,6 @@ class nsSVGFilterInstance
   typedef mozilla::gfx::FilterPrimitiveDescription FilterPrimitiveDescription;
 
 public:
-  /**
-   * @param aTargetFrame The frame of the filtered element under consideration.
-   * @param aPaintCallback [optional] The callback that Render() should use to
-   *   paint. Only required if you will call Render().
-   * @param aFilterElement The filter element referenced by aTargetFrame's
-   *   element.
-   * @param aTargetBBox The filtered element's bbox, in the filtered element's
-   *   user space.
-   * @param aFilterRegion The "filter region", in the filtered element's user
-   *   space. The caller must have already expanded the region out so that its
-   *   edges coincide with pixel boundaries in the offscreen surface that
-   *   would/will be created to paint the filter output.
-   * @param aFilterSpaceSize The size of the user specified "filter region",
-   *   in filter space units.
-   * @param aFilterSpaceToDeviceSpaceTransform The transform from filter
-   *   space to outer-<svg> device space.
-   * @param aTargetBounds The pre-filter paint bounds of the filtered element,
-   *   in filter space.
-   * @param aPostFilterDirtyRect [optional] The bounds of the post-filter area
-   *   that has to be repainted, in filter space. Only required if you will
-   *   call ComputeSourceNeededRect() or Render().
-   * @param aPreFilterDirtyRect [optional] The bounds of the pre-filter area of
-   *   the filtered element that changed, in filter space. Only required if you
-   *   will call ComputePostFilterDirtyRect().
-   * @param aPrimitiveUnits The value from the 'primitiveUnits' attribute.
-   */
-  nsSVGFilterInstance(nsIFrame *aTargetFrame,
-                      nsSVGFilterPaintCallback *aPaintCallback,
-                      const mozilla::dom::SVGFilterElement *aFilterElement,
-                      const gfxRect &aTargetBBox,
-                      const gfxRect& aFilterRegion,
-                      const nsIntSize& aFilterSpaceSize,
-                      const gfxMatrix &aFilterSpaceToDeviceSpaceTransform,
-                      const gfxMatrix &aFilterSpaceToFrameSpaceInCSSPxTransform,
-                      const nsIntRect& aTargetBounds,
-                      const nsIntRect& aPostFilterDirtyRect,
-                      const nsIntRect& aPreFilterDirtyRect,
-                      uint16_t aPrimitiveUnits,
-                      nsIFrame* aTransformRoot) :
-    mTargetFrame(aTargetFrame),
-    mPaintCallback(aPaintCallback),
-    mFilterElement(aFilterElement),
-    mTargetBBox(aTargetBBox),
-    mFilterSpaceToDeviceSpaceTransform(aFilterSpaceToDeviceSpaceTransform),
-    mFilterSpaceToFrameSpaceInCSSPxTransform(aFilterSpaceToFrameSpaceInCSSPxTransform),
-    mFilterRegion(aFilterRegion),
-    mFilterSpaceBounds(nsIntPoint(0, 0), aFilterSpaceSize),
-    mTargetBounds(aTargetBounds),
-    mPostFilterDirtyRect(aPostFilterDirtyRect),
-    mPreFilterDirtyRect(aPreFilterDirtyRect),
-    mPrimitiveUnits(aPrimitiveUnits),
-    mTransformRoot(aTransformRoot),
-    mInitialized(true) {
-  }
-
   nsSVGFilterInstance(nsIFrame *aTarget,
                       nsSVGFilterFrame *aFilterFrame,
                       nsSVGFilterPaintCallback *aPaint,
@@ -122,6 +67,24 @@ public:
                       const nsRect *aPreFilterVisualOverflowRectOverride,
                       const gfxRect *aOverrideBBox = nullptr,
                       nsIFrame* aTransformRoot = nullptr);
+
+  nsSVGFilterInstance(nsIFrame *aTarget,
+                      const nsTArray<nsStyleFilter>& aFilters,
+                      nsSVGFilterPaintCallback *aPaint,
+                      const nsRect *aPostFilterDirtyRect,
+                      const nsRect *aPreFilterDirtyRect,
+                      const nsRect *aPreFilterVisualOverflowRectOverride,
+                      const gfxRect *aOverrideBBox = nullptr,
+                      nsIFrame* aTransformRoot = nullptr);
+
+  void Initialize(nsIFrame *aTarget,
+                  nsSVGFilterFrame *aFilterFrame,
+                  nsSVGFilterPaintCallback *aPaint,
+                  const nsRect *aPostFilterDirtyRect,
+                  const nsRect *aPreFilterDirtyRect,
+                  const nsRect *aPreFilterVisualOverflowRectOverride,
+                  const gfxRect *aOverrideBBox,
+                  nsIFrame* aTransformRoot);
 
   bool IsInitialized() const { return mInitialized; }
 

@@ -15,7 +15,6 @@
 #include "nsSVGClipPathFrame.h"
 #include "nsSVGEffects.h"
 #include "nsSVGElement.h"
-#include "nsSVGFilterFrame.h"
 #include "nsSVGFilterInstance.h"
 #include "nsSVGFilterPaintCallback.h"
 #include "nsSVGMaskFrame.h"
@@ -332,8 +331,7 @@ nsSVGIntegrationUtils::AdjustInvalidAreaForSVGEffects(nsIFrame* aFrame,
 
   int32_t appUnitsPerDevPixel = aFrame->PresContext()->AppUnitsPerDevPixel();
 
-  nsSVGFilterFrame* filterFrame = effectProperties.GetFirstFilterFrame();
-  if (!filterFrame) {
+  if (!effectProperties.HasValidFilter()) {
     // The frame is either not there or not currently available,
     // perhaps because we're in the middle of tearing stuff down.
     // Be conservative, return our visual overflow rect relative
@@ -358,7 +356,7 @@ nsSVGIntegrationUtils::AdjustInvalidAreaForSVGEffects(nsIFrame* aFrame,
     return nsIntRect();
   }
 
-  nsSVGFilterInstance instance(aFrame, filterFrame, nullptr, nullptr,
+  nsSVGFilterInstance instance(aFrame, aFrame->StyleSVGReset()->mFilters, nullptr, nullptr,
                                &preEffectsRect, nullptr);
   if (!instance.IsInitialized()) {
     return nsIntRect();
@@ -381,14 +379,14 @@ nsRect
 nsSVGIntegrationUtils::GetRequiredSourceForInvalidArea(nsIFrame* aFrame,
                                                        const nsRect& aDirtyRect)
 {
+  // We're only adjusting the invalid area because of filters here.
+  if (!aFrame->StyleSVGReset()->HasFilters())
+    return aDirtyRect;
+
   // Don't bother calling GetEffectProperties; the filter property should
   // already have been set up during reflow/ComputeFrameEffectsRect
   nsIFrame* firstFrame =
     nsLayoutUtils::FirstContinuationOrSpecialSibling(aFrame);
-  nsSVGFilterFrame* filterFrame =
-    nsSVGEffects::GetFirstFilterFrame(firstFrame);
-  if (!filterFrame)
-    return aDirtyRect;
   
   // Convert aDirtyRect into "user space" in app units:
   nsPoint toUserSpace =
@@ -396,7 +394,7 @@ nsSVGIntegrationUtils::GetRequiredSourceForInvalidArea(nsIFrame* aFrame,
   nsRect postEffectsRect = aDirtyRect + toUserSpace;
 
   // GetPreFilterNeededArea
-  nsSVGFilterInstance instance(firstFrame, filterFrame, nullptr,
+  nsSVGFilterInstance instance(firstFrame, firstFrame->StyleSVGReset()->mFilters, nullptr,
                                &postEffectsRect, nullptr, nullptr);
   if (!instance.IsInitialized()) {
     return nsRect();
@@ -577,7 +575,7 @@ nsSVGIntegrationUtils::PaintFramesWithEffects(nsRenderingContext* aCtx,
     nsRect dirtyRect = aDirtyRect - offset;
 
     // PaintFilteredFrame
-    nsSVGFilterInstance instance(aFrame, effectProperties.GetFirstFilterFrame(), &callback,
+    nsSVGFilterInstance instance(aFrame, aFrame->StyleSVGReset()->mFilters, &callback,
                                  &dirtyRect, nullptr, nullptr, nullptr,
                                  nullptr);
     if (instance.IsInitialized()) {

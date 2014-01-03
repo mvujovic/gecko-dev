@@ -35,7 +35,6 @@
 #include "nsSVGClipPathFrame.h"
 #include "nsSVGContainerFrame.h"
 #include "nsSVGEffects.h"
-#include "nsSVGFilterFrame.h"
 #include "nsSVGFilterInstance.h"
 #include "nsSVGFilterPaintCallback.h"
 #include "nsSVGForeignObjectFrame.h"
@@ -407,18 +406,15 @@ nsSVGUtils::GetPostFilterVisualOverflowRect(nsIFrame *aFrame,
 {
   NS_ABORT_IF_FALSE(aFrame->GetStateBits() & NS_FRAME_SVG_LAYOUT,
                     "Called on invalid frame type");
-
-  nsSVGFilterFrame *filterFrame = nsSVGEffects::GetFirstFilterFrame(aFrame);
-  if (!filterFrame) {
-    return aPreFilterRect;
-  }
+  NS_ASSERTION(aFrame->StyleSVGReset()->HasFilters(), 
+               "we should have filters if we're calculating filter rects");
 
   // GetPostFilterBounds
   MOZ_ASSERT(!(aFrame->GetStateBits() & NS_FRAME_SVG_LAYOUT) ||
              !(aFrame->GetStateBits() & NS_FRAME_IS_NONDISPLAY),
              "Non-display SVG do not maintain visual overflow rects");
 
-  nsSVGFilterInstance instance(aFrame, filterFrame, nullptr, nullptr,
+  nsSVGFilterInstance instance(aFrame, aFrame->StyleSVGReset()->mFilters, nullptr, nullptr,
                                &aPreFilterRect, &aPreFilterRect, nullptr);
   if (!instance.IsInitialized()) {
     return nsRect();
@@ -886,7 +882,7 @@ nsSVGUtils::PaintFrameWithEffects(nsRenderingContext *aContext,
     SVGPaintCallback paintCallback;
 
     // PaintFilteredFrame
-    nsSVGFilterInstance instance(aFrame, effectProperties.GetFirstFilterFrame(), &paintCallback,
+    nsSVGFilterInstance instance(aFrame, aFrame->StyleSVGReset()->mFilters, &paintCallback,
                                  dirtyRect, nullptr, nullptr, nullptr,
                                  aTransformRoot);
     if (instance.IsInitialized()) {

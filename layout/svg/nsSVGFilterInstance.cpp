@@ -92,26 +92,6 @@ GetUserToFrameSpaceInCSSPxTransform(nsIFrame *aFrame)
 
 nsSVGFilterInstance::nsSVGFilterInstance(
   nsIFrame *aTarget,
-  nsSVGFilterFrame *aFilterFrame,
-  nsSVGFilterPaintCallback *aPaint,
-  const nsRect *aPostFilterDirtyRect,
-  const nsRect *aPreFilterDirtyRect,
-  const nsRect *aPreFilterVisualOverflowRectOverride,
-  const gfxRect *aOverrideBBox,
-  nsIFrame* aTransformRoot)
-{
-  Initialize(aTarget,
-             aFilterFrame,
-             aPaint,
-             aPostFilterDirtyRect,
-             aPreFilterDirtyRect,
-             aPreFilterVisualOverflowRectOverride,
-             aOverrideBBox,
-             aTransformRoot);
-}
-
-nsSVGFilterInstance::nsSVGFilterInstance(
-  nsIFrame *aTarget,
   const nsTArray<nsStyleFilter>& aFilters,
   nsSVGFilterPaintCallback *aPaint,
   const nsRect *aPostFilterDirtyRect,
@@ -121,6 +101,9 @@ nsSVGFilterInstance::nsSVGFilterInstance(
   nsIFrame* aTransformRoot)
 {
   nsSVGFilterFrame* filterFrame = nsSVGEffects::GetFirstFilterFrame(aTarget);
+  if (!filterFrame)
+    return;
+
   Initialize(aTarget,
              filterFrame,
              aPaint,

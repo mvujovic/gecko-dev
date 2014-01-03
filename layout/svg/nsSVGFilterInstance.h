@@ -60,15 +60,6 @@ class nsSVGFilterInstance
 
 public:
   nsSVGFilterInstance(nsIFrame *aTarget,
-                      nsSVGFilterFrame *aFilterFrame,
-                      nsSVGFilterPaintCallback *aPaint,
-                      const nsRect *aPostFilterDirtyRect,
-                      const nsRect *aPreFilterDirtyRect,
-                      const nsRect *aPreFilterVisualOverflowRectOverride,
-                      const gfxRect *aOverrideBBox = nullptr,
-                      nsIFrame* aTransformRoot = nullptr);
-
-  nsSVGFilterInstance(nsIFrame *aTarget,
                       const nsTArray<nsStyleFilter>& aFilters,
                       nsSVGFilterPaintCallback *aPaint,
                       const nsRect *aPostFilterDirtyRect,
@@ -76,15 +67,6 @@ public:
                       const nsRect *aPreFilterVisualOverflowRectOverride,
                       const gfxRect *aOverrideBBox = nullptr,
                       nsIFrame* aTransformRoot = nullptr);
-
-  void Initialize(nsIFrame *aTarget,
-                  nsSVGFilterFrame *aFilterFrame,
-                  nsSVGFilterPaintCallback *aPaint,
-                  const nsRect *aPostFilterDirtyRect,
-                  const nsRect *aPreFilterDirtyRect,
-                  const nsRect *aPreFilterVisualOverflowRectOverride,
-                  const gfxRect *aOverrideBBox,
-                  nsIFrame* aTransformRoot);
 
   bool IsInitialized() const { return mInitialized; }
 
@@ -190,6 +172,15 @@ public:
   }
 
 private:
+  void Initialize(nsIFrame *aTarget,
+                  nsSVGFilterFrame *aFilterFrame,
+                  nsSVGFilterPaintCallback *aPaint,
+                  const nsRect *aPostFilterDirtyRect,
+                  const nsRect *aPreFilterDirtyRect,
+                  const nsRect *aPreFilterVisualOverflowRectOverride,
+                  const gfxRect *aOverrideBBox,
+                  nsIFrame* aTransformRoot);
+
   struct SourceInfo {
     // Specifies which parts of the source need to be rendered.
     // Set by ComputeNeededBoxes().

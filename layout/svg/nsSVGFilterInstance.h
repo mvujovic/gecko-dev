@@ -225,6 +225,12 @@ private:
    */
   nsresult BuildPrimitives();
 
+  nsresult BuildPrimitives2();
+  nsresult BuildPrimitivesForFilter(const nsStyleFilter& filter);
+  nsresult BuildPrimitivesForBlur(const nsStyleFilter& filter);
+  nsresult BuildPrimitivesForSaturate(const nsStyleFilter& filter);
+  nsresult BuildPrimitivesForSVGFilter(const nsStyleFilter& filter);
+
   /**
    * Computes the filter space bounds of the areas that we actually *need* from
    * the filter sources, based on the value of mPostFilterDirtyRect.
@@ -299,6 +305,7 @@ private:
   nsTArray<mozilla::RefPtr<SourceSurface>> mInputImages;
   nsTArray<FilterPrimitiveDescription> mPrimitiveDescriptions;
 
+  nsTArray<nsStyleFilter> mFilters;
   bool mInitialized;
 };
 

@@ -104,6 +104,9 @@ nsSVGFilterInstance::nsSVGFilterInstance(
   if (!filterFrame)
     return;
 
+  // TODO(mvujovic): Move this when we merge this constructor and Initialize.
+  mFilters = aFilters;
+
   Initialize(aTarget,
              filterFrame,
              aPaint,
@@ -438,6 +441,121 @@ GetSourceIndices(nsSVGFE* aFilterElement,
     MOZ_ASSERT(sourceIndex < aCurrentIndex);
     aSourceIndices.AppendElement(sourceIndex);
   }
+  return NS_OK;
+}
+
+// TODO(mvujovic): Don't redefine this value from SVGFEGaussianBlurElement.
+static const float kMaxStdDeviation = 500;
+
+nsresult
+nsSVGFilterInstance::BuildPrimitives2()
+{
+  NS_ASSERTION(!mPrimitiveDescriptions.Length(), "expected to start building primitives from scratch");
+  for (uint32_t i = 0; i < mFilters.Length(); i++) {
+    if (NS_FAILED(BuildPrimitivesForFilter(mFilters[i]))) {
+      mPrimitiveDescriptions.Clear();
+      return NS_ERROR_FAILURE;
+    }
+  }
+  return NS_OK;
+}
+
+nsresult
+nsSVGFilterInstance::BuildPrimitivesForFilter(const nsStyleFilter& filter)
+{
+  nsresult result = NS_ERROR_FAILURE;
+  switch(filter.GetType()) {
+    case NS_STYLE_FILTER_BLUR:
+      result = BuildPrimitivesForBlur(filter);
+      break;
+    case NS_STYLE_FILTER_SATURATE:
+      result = BuildPrimitivesForSaturate(filter);
+      break;
+    case NS_STYLE_FILTER_URL:
+      result = BuildPrimitivesForSVGFilter(filter);
+      break;
+  }
+  return result;
+}
+
+nsresult
+nsSVGFilterInstance::BuildPrimitivesForBlur(const nsStyleFilter& filter)
+{
+  // TODO(mvujovic): Use a real region.
+  IntRect primitiveSubregion(0, 0, 100, 100);
+
+  FilterPrimitiveDescription descr(FilterPrimitiveDescription::eGaussianBlur);
+  descr.SetPrimitiveSubregion(primitiveSubregion);
+  descr.SetInputPrimitive(0, FilterPrimitiveDescription::kPrimitiveIndexSourceGraphic);
+  // TODO(mvujovic): What input and output color spaces?
+  descr.SetInputColorSpace(0, SRGB);
+  descr.SetOutputColorSpace(SRGB);
+
+  nsStyleCoord radiusStyleCoord = filter.GetFilterParameter();
+  if (radiusStyleCoord.GetUnit() != eStyleUnit_Coord) {
+    NS_NOTREACHED("unexpected unit");
+    return NS_ERROR_FAILURE;
+  }
+
+  nscoord radiusCoord = radiusStyleCoord.GetCoordValue();
+  float radius = nsPresContext::AppUnitsToFloatCSSPixels(radiusCoord);
+  if (radius < 0) {
+    NS_NOTREACHED("we shouldn't have parsed a negative value");
+    return NS_ERROR_FAILURE;
+  }
+
+  radius = std::min(radius, kMaxStdDeviation);
+  descr.Attributes().Set(eGaussianBlurStdDeviation, Size(radius, radius));
+
+  mPrimitiveDescriptions.AppendElement(descr);
+  return NS_OK;
+}
+
+nsresult
+nsSVGFilterInstance::BuildPrimitivesForSaturate(const nsStyleFilter& filter)
+{
+  // TODO(mvujovic): Use a real region.
+  IntRect primitiveSubregion(0, 0, 100, 100);
+
+  FilterPrimitiveDescription descr(FilterPrimitiveDescription::eColorMatrix);
+  descr.SetPrimitiveSubregion(primitiveSubregion);
+  descr.SetInputPrimitive(0, FilterPrimitiveDescription::kPrimitiveIndexSourceGraphic);
+  // TODO(mvujovic): What input and output color spaces?
+  descr.SetInputColorSpace(0, SRGB);
+  descr.SetOutputColorSpace(SRGB);
+
+  nsStyleCoord proportionStyleCoord = filter.GetFilterParameter();
+  float proportion = 0;
+  switch (proportionStyleCoord.GetUnit()) {
+    case eStyleUnit_Factor:
+      proportion = proportionStyleCoord.GetFactorValue();
+      break;
+    case eStyleUnit_Percent:
+      proportion = proportionStyleCoord.GetPercentValue();
+      break;
+    default:
+      NS_NOTREACHED("unexpected unit");
+      return NS_ERROR_FAILURE;
+  }
+
+  // TODO(mvujovic): Do we need to clamp really big values? WebKit just overflows, with interesting results at large values.
+  if (proportion < 0) {
+    NS_NOTREACHED("we shouldn't have parsed a negative value");
+    return NS_ERROR_FAILURE;
+  }
+
+  descr.Attributes().Set(eColorMatrixType, (uint32_t)SVG_FECOLORMATRIX_TYPE_SATURATE);
+  descr.Attributes().Set(eColorMatrixValues, &proportion, 1);
+
+  mPrimitiveDescriptions.AppendElement(descr);
+  return NS_OK;
+}
+
+nsresult
+nsSVGFilterInstance::BuildPrimitivesForSVGFilter(const nsStyleFilter& filter)
+{
+
+
   return NS_OK;
 }
 

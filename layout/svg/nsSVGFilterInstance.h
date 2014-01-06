@@ -98,31 +98,31 @@ public:
   nsresult Render(gfxContext* aContext);
 
   /**
-   * Sets the aPostFilterDirtyRect outparam to the post-filter bounds in filter
+   * Sets the aPostFilterDirtyRect outparam to the post-filter bounds in frame
    * space of the area that would be dirtied by mTargetFrame when a given
    * pre-filter area of mTargetFrame is dirtied. The pre-filter area must have
    * been specified before calling this method by passing it as the
    * aPreFilterDirtyRect argument to the nsSVGFilterInstance constructor.
    */
-  nsresult ComputePostFilterDirtyRect(nsIntRect* aPostFilterDirtyRect);
+  nsresult ComputePostFilterDirtyRect(nsRect* aPostFilterDirtyRect);
 
   /**
-   * Sets the aPostFilterExtents outparam to the post-filter bounds in filter
+   * Sets the aPostFilterExtents outparam to the post-filter bounds in frame
    * space for the whole filter output. This is not necessarily equivalent to
    * the area that would be dirtied in the result when the entire pre-filter
    * area is dirtied, because some filter primitives can generate output
    * without any input.
    */
-  nsresult ComputePostFilterExtents(nsIntRect* aPostFilterExtents);
+  nsresult ComputePostFilterExtents(nsRect* aPostFilterExtents);
 
   /**
-   * Sets the aDirty outparam to the pre-filter bounds in filter space of the
+   * Sets the aDirty outparam to the pre-filter bounds in frame space of the
    * area of mTargetFrame that is needed in order to paint the filtered output
    * for a given post-filter dirtied area. The post-filter area must have been
    * specified before calling this method by passing it as the aPostFilterDirtyRect
    * argument to the nsSVGFilterInstance constructor.
    */
-  nsresult ComputeSourceNeededRect(nsIntRect* aDirty);
+  nsresult ComputeSourceNeededRect(nsRect* aDirty);
 
   float GetPrimitiveNumber(uint8_t aCtxType, const nsSVGNumber2 *aNumber) const
   {
@@ -245,6 +245,8 @@ private:
   float GetPrimitiveNumber(uint8_t aCtxType, float aValue) const;
 
   gfxRect UserSpaceToFilterSpace(const gfxRect& aUserSpace) const;
+
+  nsRect TransformFilterSpaceToFrameSpace(const nsIntRect& aRect) const;
 
   /**
    * The frame for the element that is currently being filtered.

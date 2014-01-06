@@ -749,12 +749,12 @@ nsSVGFilterInstance::Render(gfxContext* aContext)
 }
 
 nsresult
-nsSVGFilterInstance::ComputePostFilterDirtyRect(nsIntRect* aPostFilterDirtyRect)
+nsSVGFilterInstance::ComputePostFilterDirtyRect(nsRect* aPostFilterDirtyRect)
 {
   NS_ASSERTION(mInitialized, "filter instance must be initialized");
 
-  *aPostFilterDirtyRect = nsIntRect();
   if (mPreFilterDirtyRect.IsEmpty()) {
+    *aPostFilterDirtyRect = nsRect();
     return NS_OK;
   }
 
@@ -763,40 +763,54 @@ nsSVGFilterInstance::ComputePostFilterDirtyRect(nsIntRect* aPostFilterDirtyRect)
   nsIntRegion resultChangeRegion =
     FilterSupport::ComputeResultChangeRegion(filter,
       mPreFilterDirtyRect, nsIntRegion(), nsIntRegion());
-  *aPostFilterDirtyRect = resultChangeRegion.GetBounds();
+  *aPostFilterDirtyRect = TransformFilterSpaceToFrameSpace(resultChangeRegion.GetBounds());
+
   return NS_OK;
 }
 
 nsresult
-nsSVGFilterInstance::ComputePostFilterExtents(nsIntRect* aPostFilterExtents)
+nsSVGFilterInstance::ComputePostFilterExtents(nsRect* aPostFilterExtents)
 {
   NS_ASSERTION(mInitialized, "filter instance must be initialized");
-
-  *aPostFilterExtents = nsIntRect();
 
   nsIntRect sourceBoundsInt;
   gfxRect sourceBounds = UserSpaceToFilterSpace(mTargetBBox);
   sourceBounds.RoundOut();
   // Detect possible float->int overflow
-  if (!gfxUtils::GfxRectToIntRect(sourceBounds, &sourceBoundsInt))
+  if (!gfxUtils::GfxRectToIntRect(sourceBounds, &sourceBoundsInt)) {
+    *aPostFilterExtents = nsRect();
     return NS_ERROR_FAILURE;
+  }
   sourceBoundsInt.UnionRect(sourceBoundsInt, mTargetBounds);
 
   IntRect filterSpaceBounds = ToIntRect(mFilterSpaceBounds);
   FilterDescription filter(mPrimitiveDescriptions, filterSpaceBounds);
   nsIntRegion postFilterExtents =
     FilterSupport::ComputePostFilterExtents(filter, sourceBoundsInt);
-  *aPostFilterExtents = postFilterExtents.GetBounds();
+  *aPostFilterExtents = TransformFilterSpaceToFrameSpace(postFilterExtents.GetBounds());
+
   return NS_OK;
 }
 
 nsresult
-nsSVGFilterInstance::ComputeSourceNeededRect(nsIntRect* aDirty)
+nsSVGFilterInstance::ComputeSourceNeededRect(nsRect* aDirty)
 {
   NS_ASSERTION(mInitialized, "filter instance must be initialized");
 
   ComputeNeededBoxes();
-  *aDirty = mSourceGraphic.mNeededBounds;
+  *aDirty = TransformFilterSpaceToFrameSpace(mSourceGraphic.mNeededBounds);
 
   return NS_OK;
 }
+
+nsRect
+nsSVGFilterInstance::TransformFilterSpaceToFrameSpace(const nsIntRect& aRect) const
+{
+  if (aRect.IsEmpty()) {
+    return nsRect();
+  }
+  gfxRect r(aRect.x, aRect.y, aRect.width, aRect.height);
+  r = GetFilterSpaceToFrameSpaceInCSSPxTransform().TransformBounds(r);
+  return nsLayoutUtils::RoundGfxRectToAppRect(r, AppUnitsPerCSSPixel());
+}
+

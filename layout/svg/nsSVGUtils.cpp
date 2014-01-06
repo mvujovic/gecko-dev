@@ -419,10 +419,10 @@ nsSVGUtils::GetPostFilterVisualOverflowRect(nsIFrame *aFrame,
   if (!instance.IsInitialized()) {
     return nsRect();
   }
-  nsIntRect bbox;
+  nsRect bbox;
   nsresult rv = instance.ComputePostFilterExtents(&bbox);
   if (NS_SUCCEEDED(rv)) {
-    return TransformFilterSpaceToFrameSpace(&instance, &bbox);
+    return bbox;
   }
   return nsRect();
 }

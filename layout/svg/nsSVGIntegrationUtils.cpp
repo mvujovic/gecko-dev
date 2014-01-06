@@ -213,19 +213,6 @@ nsSVGIntegrationUtils::GetSVGBBoxForNonSVGFrame(nsIFrame* aNonSVGFrame)
            aNonSVGFrame->PresContext()->AppUnitsPerCSSPixel());
 }
 
-static nsRect
-TransformFilterSpaceToFrameSpace(nsSVGFilterInstance *aInstance,
-                                 nsIntRect *aRect)
-{
-  if (aRect->IsEmpty()) {
-    return nsRect();
-  }
-  gfxMatrix m = aInstance->GetFilterSpaceToFrameSpaceInCSSPxTransform();
-  gfxRect r(aRect->x, aRect->y, aRect->width, aRect->height);
-  r = m.TransformBounds(r);
-  return nsLayoutUtils::RoundGfxRectToAppRect(r, aInstance->AppUnitsPerCSSPixel());
-}
-
 // XXX Since we're called during reflow, this method is broken for frames with
 // continuations. When we're called for a frame with continuations, we're
 // called for each continuation in turn as it's reflowed. However, it isn't
@@ -296,12 +283,11 @@ nsRect
   if (!instance.IsInitialized()) {
     return nsRect();
   }
-  nsIntRect bbox;
+  nsRect bbox;
   nsresult rv = instance.ComputePostFilterExtents(&bbox);
   if (NS_SUCCEEDED(rv)) {
     // Return overflowRect relative to aFrame, rather than "user space":
-    return TransformFilterSpaceToFrameSpace(&instance, &bbox)
-      - (aFrame->GetOffsetTo(firstFrame) + firstFrameToUserSpace);
+    return bbox - (aFrame->GetOffsetTo(firstFrame) + firstFrameToUserSpace);
   }
   return nsRect();
 }
@@ -364,13 +350,11 @@ nsSVGIntegrationUtils::AdjustInvalidAreaForSVGEffects(nsIFrame* aFrame,
   // We've passed in the source's dirty area so the instance knows about it.
   // Now we can ask the instance to compute the area of the filter output
   // that's dirty.
-  nsIntRect dirtyRect;
+  nsRect dirtyRect;
   nsresult rv = instance.ComputePostFilterDirtyRect(&dirtyRect);
   if (NS_SUCCEEDED(rv)) {
-    nsRect result = TransformFilterSpaceToFrameSpace(&instance, &dirtyRect)
-      - toUserSpace;
     // Return the result, in pixels relative to the reference frame.
-    return result.ToOutsidePixels(appUnitsPerDevPixel);
+    return (dirtyRect - toUserSpace).ToOutsidePixels(appUnitsPerDevPixel);
   }
   return nsIntRect();
 }
@@ -402,12 +386,11 @@ nsSVGIntegrationUtils::GetRequiredSourceForInvalidArea(nsIFrame* aFrame,
 
   // Now we can ask the instance to compute the area of the source
   // that's needed.
-  nsIntRect neededRect;
+  nsRect neededRect;
   nsresult rv = instance.ComputeSourceNeededRect(&neededRect);
   if (NS_SUCCEEDED(rv)) {
     // Return the result, relative to aFrame, not in user space:
-    return TransformFilterSpaceToFrameSpace(&instance, &neededRect)
-      - toUserSpace;
+    return neededRect - toUserSpace;
   }
   return nsRect();
 }

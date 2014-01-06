@@ -254,6 +254,8 @@ private:
 
   nsRect TransformFilterSpaceToFrameSpace(const nsIntRect& aRect) const;
 
+  nsSVGFilterFrame* GetFilterFrame(nsIURI* url);
+
   /**
    * The frame for the element that is currently being filtered.
    */

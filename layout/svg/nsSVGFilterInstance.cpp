@@ -12,6 +12,7 @@
 #include "nsISVGChildFrame.h"
 #include "nsRenderingContext.h"
 #include "mozilla/dom/SVGFilterElement.h"
+#include "nsReferencedElement.h"
 #include "nsSVGFilterPaintCallback.h"
 #include "nsSVGUtils.h"
 #include "SVGContentUtils.h"
@@ -276,7 +277,12 @@ nsSVGFilterInstance::Initialize(
   mTransformRoot = aTransformRoot;
 
   // Build the primitives.
-  nsresult rv = BuildPrimitives();
+  nsresult rv = BuildPrimitives2();
+  if (NS_FAILED(rv)) {
+    return;
+  }
+
+  rv = BuildPrimitives();
   if (NS_FAILED(rv)) {
     return;
   }
@@ -554,9 +560,47 @@ nsSVGFilterInstance::BuildPrimitivesForSaturate(const nsStyleFilter& filter)
 nsresult
 nsSVGFilterInstance::BuildPrimitivesForSVGFilter(const nsStyleFilter& filter)
 {
+  nsSVGFilterFrame* filterFrame = GetFilterFrame(filter.GetURL());
+  if (!filterFrame) {
+    return NS_ERROR_FAILURE;
+  }
 
+  const SVGFilterElement* filterElement = filterFrame->GetFilterContent();
+  if (!filterElement) {
+    NS_NOTREACHED("filter frame should have a related element");
+    return NS_ERROR_FAILURE;
+  }
+
+  fprintf(stderr, "Processed SVG Filter!\n");
 
   return NS_OK;
+}
+
+nsSVGFilterFrame*
+nsSVGFilterInstance::GetFilterFrame(nsIURI* url)
+{
+  if (!url) {
+    NS_NOTREACHED("expected a filter URL");
+    return nullptr;
+  }
+
+  // Get the referenced filter element.
+  nsReferencedElement filterElement;
+  bool watch = false;
+  filterElement.Reset(mTargetFrame->GetContent(), url, watch);
+  Element* element = filterElement.get();
+  if (!element) {
+    NS_NOTREACHED("expected a referenced element");
+    return nullptr;
+  }
+
+  // Get the frame of the referenced filter element.
+  nsIFrame* frame = element->GetPrimaryFrame();
+  if (frame->GetType() != nsGkAtoms::svgFilterFrame) {
+    NS_NOTREACHED("expected an SVG filter element");
+    return nullptr;
+  }
+  return static_cast<nsSVGFilterFrame*>(frame);    
 }
 
 nsresult

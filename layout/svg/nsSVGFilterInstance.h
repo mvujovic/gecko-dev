@@ -223,7 +223,7 @@ private:
    * filter primitives and their connections. This populates
    * mPrimitiveDescriptions and mInputImages.
    */
-  nsresult BuildPrimitives();
+  nsresult BuildPrimitives(nsSVGFilterFrame* aFilterFrame);
 
   nsresult BuildPrimitives2();
   nsresult BuildPrimitivesForFilter(const nsStyleFilter& filter);
@@ -241,8 +241,11 @@ private:
   /**
    * Computes the filter primitive subregion for the given primitive.
    */
-  IntRect ComputeFilterPrimitiveSubregion(nsSVGFE* aFilterElement,
-                                          const nsTArray<int32_t>& aInputIndices);
+  IntRect ComputeFilterPrimitiveSubregion(
+    nsSVGFE* aFilterPrimitiveElement,
+    nsSVGFilterFrame* aFilterFrame,
+    const nsTArray<int32_t>& aInputIndices,
+    const nsIntRect& filterSpaceBounds);
 
   /**
    * Scales a numeric filter primitive length in the X, Y or "XY" directions
@@ -253,6 +256,20 @@ private:
   gfxRect UserSpaceToFilterSpace(const gfxRect& aUserSpace) const;
 
   nsRect TransformFilterSpaceToFrameSpace(const nsIntRect& aRect) const;
+
+  gfxMatrix GetCanvasTM();
+
+  gfxRect GetFilterRegionInTargetUserSpace(
+    const mozilla::dom::SVGFilterElement* aFilterElement,
+    nsSVGFilterFrame* aFilterFrame,
+    const gfxMatrix& aCanvasTM);
+
+  nsIntRect GetFilterSpaceBounds(const gfxRect& aFilterRegion,
+                                 const gfxMatrix& aCanvasTM);
+
+  void GetFilterPrimitiveElements(
+    const mozilla::dom::SVGFilterElement* aFilterElement, 
+    nsTArray<nsRefPtr<nsSVGFE> >& aPrimitives);
 
   nsSVGFilterFrame* GetFilterFrame(nsIURI* url);
 

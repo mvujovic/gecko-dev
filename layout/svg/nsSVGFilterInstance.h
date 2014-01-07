@@ -279,7 +279,6 @@ private:
   nsIFrame*               mTargetFrame;
 
   nsSVGFilterPaintCallback* mPaintCallback;
-  const mozilla::dom::SVGFilterElement* mFilterElement;
 
   /**
    * The SVG bbox of the element that is being filtered, in user space.

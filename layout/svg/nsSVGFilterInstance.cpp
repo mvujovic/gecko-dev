@@ -204,7 +204,6 @@ nsSVGFilterInstance::Initialize(
 
   // Setup instance data
   mPaintCallback = aPaint;
-  mFilterElement = filter;
   mTargetBBox = bbox;
   mFilterSpaceToDeviceSpaceTransform = filterToDeviceSpace;
   mFilterSpaceToFrameSpaceInCSSPxTransform = filterToFrameSpaceInCSSPx;
@@ -727,15 +726,7 @@ nsresult
 nsSVGFilterInstance::BuildPrimitives(nsSVGFilterFrame* aFilterFrame)
 {
   nsTArray<nsRefPtr<nsSVGFE> > primitives;
-  for (nsIContent* child = mFilterElement->nsINode::GetFirstChild();
-       child;
-       child = child->GetNextSibling()) {
-    nsRefPtr<nsSVGFE> primitive;
-    CallQueryInterface(child, (nsSVGFE**)getter_AddRefs(primitive));
-    if (primitive) {
-      primitives.AppendElement(primitive);
-    }
-  }
+  GetFilterPrimitiveElements(aFilterFrame->GetFilterContent(), primitives);
 
   // Maps source image name to source index.
   nsDataHashtable<nsStringHashKey, int32_t> imageTable(10);

@@ -307,18 +307,17 @@ nsSVGFilterInstance::GetUserSpaceToFilterSpaceTransform() const
 
 IntRect
 nsSVGFilterInstance::ComputeFilterPrimitiveSubregion(
-  nsSVGFE* aFilterPrimitiveElement,
+  nsSVGFE* aPrimitiveElement,
   nsSVGFilterFrame* aFilterFrame,
   const nsTArray<int32_t>& aInputIndices,
   const nsIntRect& filterSpaceBounds)
 {
-  nsSVGFE* fE = aFilterPrimitiveElement;
+  nsSVGFE* fE = aPrimitiveElement;
 
   IntRect defaultFilterSubregion(0,0,0,0);
   if (fE->SubregionIsUnionOfRegions()) {
     for (uint32_t i = 0; i < aInputIndices.Length(); ++i) {
       int32_t inputIndex = aInputIndices[i];
-      // TODO: mPrimitiveDescriptions[inputIndex] isn't going to be right across multiple filters. 
       IntRect inputSubregion = inputIndex >= 0 ?
         mPrimitiveDescriptions[inputIndex].PrimitiveSubregion() :
         ToIntRect(filterSpaceBounds);
@@ -527,7 +526,9 @@ nsSVGFilterInstance::BuildPrimitivesForSVGFilter(const nsStyleFilter& filter)
   }
 
   // Get the filter region (in the filtered element's user space).
-  gfxRect filterRegion = GetFilterRegionInTargetUserSpace(filterElement, filterFrame, canvasTM);
+  gfxRect filterRegion = GetFilterRegionInTargetUserSpace(filterElement,
+                                                          filterFrame,
+                                                          canvasTM);
   if (filterRegion.Width() <= 0 || filterRegion.Height() <= 0) {
     // 0 disables rendering, < 0 is error. dispatch error console warning
     // or error as appropriate.
@@ -538,60 +539,65 @@ nsSVGFilterInstance::BuildPrimitivesForSVGFilter(const nsStyleFilter& filter)
   nsIntRect filterSpaceBounds = GetFilterSpaceBounds(filterRegion, canvasTM);
 
   // Get the filter primitive elements.
-  nsTArray<nsRefPtr<nsSVGFE> > primitives;
-  GetFilterPrimitiveElements(filterElement, primitives);
+  nsTArray<nsRefPtr<nsSVGFE> > primitiveElements;
+  GetFilterPrimitiveElements(filterElement, primitiveElements);
 
   // Maps source image name to source index.
   nsDataHashtable<nsStringHashKey, int32_t> imageTable(10);
 
-  for (uint32_t i = 0; i < primitives.Length(); ++i) {
-    nsSVGFE* filterPrimitiveElement = primitives[i];
+  for (uint32_t primitiveElementIndex = 0,
+       primitiveDescriptionIndex = mPrimitiveDescriptions.Length();
+       primitiveElementIndex < primitiveElements.Length();
+       primitiveElementIndex++,
+       primitiveDescriptionIndex++) {
+    nsSVGFE* primitiveElement = primitiveElements[primitiveElementIndex];
 
     nsAutoTArray<int32_t,2> sourceIndices;
-    nsresult rv = GetSourceIndices(filterPrimitiveElement, i, imageTable, sourceIndices);
+    nsresult rv = GetSourceIndices(primitiveElement,
+                                   primitiveDescriptionIndex,
+                                   imageTable,
+                                   sourceIndices);
     if (NS_FAILED(rv)) {
       return rv;
     }
 
     IntRect primitiveSubregion =
-      ComputeFilterPrimitiveSubregion(filterPrimitiveElement,
+      ComputeFilterPrimitiveSubregion(primitiveElement,
                                       filterFrame,
                                       sourceIndices,
                                       filterSpaceBounds);
 
     FilterPrimitiveDescription descr = 
-      filterPrimitiveElement->GetPrimitiveDescription(this, 
-                                                      primitiveSubregion,
-                                                      mInputImages);
+      primitiveElement->GetPrimitiveDescription(this, 
+                                                primitiveSubregion,
+                                                mInputImages);
 
     descr.SetPrimitiveSubregion(primitiveSubregion);
 
-    for (uint32_t j = 0; j < sourceIndices.Length(); j++) {
-      int32_t inputIndex = sourceIndices[j];
-      descr.SetInputPrimitive(j, inputIndex);
-      ColorSpace inputColorSpace =
-        inputIndex < 0 ? 
-          SRGB :
+    for (uint32_t i = 0; i < sourceIndices.Length(); i++) {
+      int32_t inputIndex = sourceIndices[i];
+      descr.SetInputPrimitive(i, inputIndex);
+      ColorSpace inputColorSpace = inputIndex < 0 ? SRGB :
           mPrimitiveDescriptions[inputIndex].OutputColorSpace();
       ColorSpace desiredInputColorSpace =
-        filterPrimitiveElement->GetInputColorSpace(j, inputColorSpace);
-      descr.SetInputColorSpace(j, desiredInputColorSpace);
-      if (j == 0) {
+        primitiveElement->GetInputColorSpace(i, inputColorSpace);
+      descr.SetInputColorSpace(i, desiredInputColorSpace);
+      if (i == 0) {
         // the output color space is whatever in1 is if there is an in1
         descr.SetOutputColorSpace(desiredInputColorSpace);
       }
     }
 
     if (sourceIndices.Length() == 0) {
-      descr.SetOutputColorSpace(filterPrimitiveElement->GetOutputColorSpace());
+      descr.SetOutputColorSpace(primitiveElement->GetOutputColorSpace());
     }
 
     mPrimitiveDescriptions.AppendElement(descr);
 
     nsAutoString str;
-    filterPrimitiveElement->GetResultImageName().GetAnimValue(
-      str, filterPrimitiveElement);
-    imageTable.Put(str, i);
+    primitiveElement->GetResultImageName().GetAnimValue(
+      str, primitiveElement);
+    imageTable.Put(str, primitiveDescriptionIndex);
   }
 
   return NS_OK;

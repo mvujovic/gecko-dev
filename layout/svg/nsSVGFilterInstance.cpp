@@ -130,94 +130,35 @@ nsSVGFilterInstance::Initialize(
   nsIFrame* aTransformRoot)
 {
   mInitialized = false;
+  mTargetFrame = aTarget;
 
   const SVGFilterElement *filter = aFilterFrame->GetFilterContent();
 
-  uint16_t filterUnits =
-    aFilterFrame->GetEnumValue(SVGFilterElement::FILTERUNITS);
   uint16_t primitiveUnits =
     aFilterFrame->GetEnumValue(SVGFilterElement::PRIMITIVEUNITS);
 
   gfxRect bbox = aOverrideBBox ? *aOverrideBBox : nsSVGUtils::GetBBox(aTarget);
 
-  // Get the filter region (in the filtered element's user space):
+  // Get the user space to device space transform.
+  gfxMatrix canvasTM = GetCanvasTM();
+  if (canvasTM.IsSingular()) {
+    // Nothing to draw.
+    return;
+  }
 
-  // XXX if filterUnits is set (or has defaulted) to objectBoundingBox, we
-  // should send a warning to the error console if the author has used lengths
-  // with units. This is a common mistake and can result in filterRes being
-  // *massive* below (because we ignore the units and interpret the number as
-  // a factor of the bbox width/height). We should also send a warning if the
-  // user uses a number without units (a future SVG spec should really
-  // deprecate that, since it's too confusing for a bare number to be sometimes
-  // interpreted as a fraction of the bounding box and sometimes as user-space
-  // units). So really only percentage values should be used in this case.
-  
-  nsSVGLength2 XYWH[4];
-  NS_ABORT_IF_FALSE(sizeof(filter->mLengthAttributes) == sizeof(XYWH),
-                    "XYWH size incorrect");
-  memcpy(XYWH, filter->mLengthAttributes, sizeof(filter->mLengthAttributes));
-  XYWH[0] = *aFilterFrame->GetLengthValue(SVGFilterElement::ATTR_X);
-  XYWH[1] = *aFilterFrame->GetLengthValue(SVGFilterElement::ATTR_Y);
-  XYWH[2] = *aFilterFrame->GetLengthValue(SVGFilterElement::ATTR_WIDTH);
-  XYWH[3] = *aFilterFrame->GetLengthValue(SVGFilterElement::ATTR_HEIGHT);
-  // The filter region in user space, in user units:
-  gfxRect filterRegion = nsSVGUtils::GetRelativeRect(filterUnits,
-    XYWH, bbox, aTarget);
-
+  // Get the filter region (in the filtered element's user space).
+  gfxRect filterRegion = GetFilterRegionInTargetUserSpace(filter, aFilterFrame, canvasTM);
   if (filterRegion.Width() <= 0 || filterRegion.Height() <= 0) {
     // 0 disables rendering, < 0 is error. dispatch error console warning
     // or error as appropriate.
     return;
   }
 
-  // Calculate filterRes (the width and height of the pixel buffer of the
-  // temporary offscreen surface that we would/will create to paint into when
-  // painting the entire filtered element) and, if necessary, adjust
-  // filterRegion out slightly so that it aligns with pixel boundaries of this
-  // buffer:
+  // Get the filter region (in filter space aka device space).
+  nsIntRect filterSpaceBounds = GetFilterSpaceBounds(filterRegion, canvasTM);
+  nsIntSize filterRes = filterSpaceBounds.Size();
 
-  gfxIntSize filterRes;
-  const nsSVGIntegerPair* filterResAttrs =
-    aFilterFrame->GetIntegerPairValue(SVGFilterElement::FILTERRES);
-  if (filterResAttrs->IsExplicitlySet()) {
-    int32_t filterResX = filterResAttrs->GetAnimValue(nsSVGIntegerPair::eFirst);
-    int32_t filterResY = filterResAttrs->GetAnimValue(nsSVGIntegerPair::eSecond);
-    if (filterResX <= 0 || filterResY <= 0) {
-      // 0 disables rendering, < 0 is error. dispatch error console warning?
-      return;
-    }
-
-    filterRegion.Scale(filterResX, filterResY);
-    filterRegion.RoundOut();
-    filterRegion.Scale(1.0 / filterResX, 1.0 / filterResY);
-    // We don't care if this overflows, because we can handle upscaling/
-    // downscaling to filterRes
-    bool overflow;
-    filterRes =
-      nsSVGUtils::ConvertToSurfaceSize(gfxSize(filterResX, filterResY),
-                                       &overflow);
-    // XXX we could send a warning to the error console if the author specified
-    // filterRes doesn't align well with our outer 'svg' device space.
-  } else {
-    // Match filterRes as closely as possible to the pixel density of the nearest
-    // outer 'svg' device space:
-    gfxMatrix canvasTM =
-      nsSVGUtils::GetCanvasTM(aTarget, nsISVGChildFrame::FOR_OUTERSVG_TM);
-    if (canvasTM.IsSingular()) {
-      // nothing to draw
-      return;
-    }
-
-    gfxSize scale = canvasTM.ScaleFactors(true);
-    filterRegion.Scale(scale.width, scale.height);
-    filterRegion.RoundOut();
-    // We don't care if this overflows, because we can handle upscaling/
-    // downscaling to filterRes
-    bool overflow;
-    filterRes = nsSVGUtils::ConvertToSurfaceSize(filterRegion.Size(),
-                                                 &overflow);
-    filterRegion.Scale(1.0 / scale.width, 1.0 / scale.height);
-  }
+  // TODO(mvujovic): Handle a defined filterRes again.
 
   // Get various transforms:
 
@@ -262,7 +203,6 @@ nsSVGFilterInstance::Initialize(
   }
 
   // Setup instance data
-  mTargetFrame = aTarget;
   mPaintCallback = aPaint;
   mFilterElement = filter;
   mTargetBBox = bbox;
@@ -582,13 +522,14 @@ nsSVGFilterInstance::BuildPrimitivesForSVGFilter(const nsStyleFilter& filter)
     return NS_ERROR_FAILURE;
   }
 
-  // Get the filter bounds.
+  // Get the user space to device space transform.
   gfxMatrix canvasTM = GetCanvasTM();
   if (canvasTM.IsSingular()) {
     // Nothing to draw.
     return NS_ERROR_FAILURE;
   }
 
+  // Get the filter region (in the filtered element's user space).
   gfxRect filterRegion = GetFilterRegionInTargetUserSpace(filterElement, filterFrame, canvasTM);
   if (filterRegion.Width() <= 0 || filterRegion.Height() <= 0) {
     // 0 disables rendering, < 0 is error. dispatch error console warning
@@ -596,6 +537,7 @@ nsSVGFilterInstance::BuildPrimitivesForSVGFilter(const nsStyleFilter& filter)
     return NS_ERROR_FAILURE;
   }
 
+  // Get the filter region (in filter space aka device space).
   nsIntRect filterSpaceBounds = GetFilterSpaceBounds(filterRegion, canvasTM);
 
   // Get the filter primitive elements.

@@ -131,13 +131,12 @@ nsSVGFilterInstance::Initialize(
 {
   mInitialized = false;
   mTargetFrame = aTarget;
+  mTargetBBox = aOverrideBBox ? *aOverrideBBox : nsSVGUtils::GetBBox(mTargetFrame);
 
   const SVGFilterElement *filter = aFilterFrame->GetFilterContent();
 
   uint16_t primitiveUnits =
     aFilterFrame->GetEnumValue(SVGFilterElement::PRIMITIVEUNITS);
-
-  gfxRect bbox = aOverrideBBox ? *aOverrideBBox : nsSVGUtils::GetBBox(aTarget);
 
   // Get the user space to device space transform.
   gfxMatrix canvasTM = GetCanvasTM();
@@ -204,7 +203,6 @@ nsSVGFilterInstance::Initialize(
 
   // Setup instance data
   mPaintCallback = aPaint;
-  mTargetBBox = bbox;
   mFilterSpaceToDeviceSpaceTransform = filterToDeviceSpace;
   mFilterSpaceToFrameSpaceInCSSPxTransform = filterToFrameSpaceInCSSPx;
   mFilterRegion = filterRegion;
@@ -639,12 +637,10 @@ nsSVGFilterInstance::GetFilterRegionInTargetUserSpace(
   XYWH[3] = *aFilterFrame->GetLengthValue(SVGFilterElement::ATTR_HEIGHT);
 
   // The filter region in user space, in user units:
-  // TODO(mvujovic): Support override bbox.
-  gfxRect bbox = nsSVGUtils::GetBBox(mTargetFrame);
   uint16_t filterUnits = 
     aFilterFrame->GetEnumValue(SVGFilterElement::FILTERUNITS);
   gfxRect filterRegion = 
-    nsSVGUtils::GetRelativeRect(filterUnits, XYWH, bbox, aFilterFrame);
+    nsSVGUtils::GetRelativeRect(filterUnits, XYWH, mTargetBBox, aFilterFrame);
 
   // Match the filter region as closely as possible to the pixel density of the
   // nearest outer 'svg' device space:

@@ -167,6 +167,9 @@ nsSVGFilterInstance::Initialize(
                               0.0f, mFilterRegion.Height() / filterRes.height,
                               mFilterRegion.X(), mFilterRegion.Y());
 
+  mFilterSpaceToFrameSpaceInCSSPxTransform = filterToUserSpace
+    * GetUserToFrameSpaceInCSSPxTransform(aTarget);
+
   // Only used (so only set) when we paint:
   if (aPaint) {
     mFilterSpaceToDeviceSpaceTransform = filterToUserSpace *
@@ -174,36 +177,9 @@ nsSVGFilterInstance::Initialize(
   }
 
   // Convert the passed in rects from frame to filter space:
-
-  int32_t appUnitsPerCSSPx = aTarget->PresContext()->AppUnitsPerCSSPixel();
-
-  mFilterSpaceToFrameSpaceInCSSPxTransform = filterToUserSpace
-    * GetUserToFrameSpaceInCSSPxTransform(aTarget);
-  // filterToFrameSpaceInCSSPx is always invertible
-  gfxMatrix frameSpaceInCSSPxTofilterSpace =
-    mFilterSpaceToFrameSpaceInCSSPxTransform;
-  frameSpaceInCSSPxTofilterSpace.Invert();
-
-  mPostFilterDirtyRect =
-    MapFrameRectToFilterSpace(aPostFilterDirtyRect, appUnitsPerCSSPx,
-                              frameSpaceInCSSPxTofilterSpace, filterRes);
-  mPreFilterDirtyRect =
-    MapFrameRectToFilterSpace(aPreFilterDirtyRect, appUnitsPerCSSPx,
-                              frameSpaceInCSSPxTofilterSpace, filterRes);
-  
-  nsIntRect preFilterVisualOverflowRect;
-  if (aPreFilterVisualOverflowRectOverride) {
-    preFilterVisualOverflowRect =
-      MapFrameRectToFilterSpace(aPreFilterVisualOverflowRectOverride,
-                                appUnitsPerCSSPx,
-                                frameSpaceInCSSPxTofilterSpace, filterRes);
-  } else {
-    nsRect preFilterVOR = aTarget->GetPreEffectsVisualOverflowRect();
-    preFilterVisualOverflowRect =
-      MapFrameRectToFilterSpace(&preFilterVOR, appUnitsPerCSSPx,
-                                frameSpaceInCSSPxTofilterSpace, filterRes);
-  }
-  mTargetBounds = preFilterVisualOverflowRect;
+  ConvertRectsFromFrameSpaceToFilterSpace(aPostFilterDirtyRect,
+                                          aPreFilterDirtyRect,
+                                          aPreFilterVisualOverflowRectOverride);
 
   // Build the primitives.
   nsresult rv = BuildPrimitives2();

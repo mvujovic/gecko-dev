@@ -557,7 +557,6 @@ nsSVGFilterInstance::BuildPrimitivesForSVGFilter(const nsStyleFilter& filter)
   // Get the filter region (in filter space aka device space).
   nsIntRect svgFilterSpaceBounds = GetSVGFilterSpaceBounds(svgFilterRegion, 
                                                            canvasTM);
-  // TODO(mvujovic): Change.
   mFilterSpaceBounds = svgFilterSpaceBounds;
 
   // Get the filter primitive elements.
@@ -696,12 +695,18 @@ nsSVGFilterInstance::GetSVGFilterSpaceBounds(const gfxRect& aSVGFilterRegion,
   gfxRect scaledSVGFilterRegion(aSVGFilterRegion);
   scaledSVGFilterRegion.Scale(scale.width, scale.height);
 
+  // TODO(mvujovic): Reenable this for the overall filter space bounds.
   // We don't care if this overflows, because we can handle upscaling /
   // downscaling to filterRes.
-  bool overflow;
-  gfxSize filterRes = 
-    nsSVGUtils::ConvertToSurfaceSize(scaledSVGFilterRegion.Size(), &overflow);
-  return nsIntRect(0, 0, filterRes.width, filterRes.height);
+  // bool overflow;
+  // gfxSize filterRes = 
+  //   nsSVGUtils::ConvertToSurfaceSize(scaledSVGFilterRegion.Size(), &overflow);
+  // return nsIntRect(0, 0, filterRes.width, filterRes.height);
+
+  return nsIntRect(scaledSVGFilterRegion.X(), 
+                   scaledSVGFilterRegion.Y(),
+                   scaledSVGFilterRegion.Width(),
+                   scaledSVGFilterRegion.Height());
 }
 
 void
@@ -775,6 +780,9 @@ void
 nsSVGFilterInstance::ComputeOverallFilterMetrics(const gfxMatrix& aCanvasTM)
 {
   // Compute various transforms.
+  nsIntPoint filterSpaceOffset = mFilterSpaceBounds.TopLeft();
+  mFilterSpaceBounds -= filterSpaceOffset;
+  TranslatePrimitiveSubregions(-IntPoint(filterSpaceOffset.x, filterSpaceOffset.y));
 
   // Compute filter space to user space transform.
   gfxMatrix filterToUserSpace(

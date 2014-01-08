@@ -283,8 +283,8 @@ private:
 
   nsSVGFilterFrame* GetFilterFrame(nsIURI* url);
 
-  IntRect ComputePrimitiveSubregionsUnion();
   void TranslatePrimitiveSubregions(IntPoint translation);
+  void ClipPrimitiveSubregions(IntRect clipRect);
   void ComputeOverallFilterMetrics(const gfxMatrix& aCanvasTM);
 
   void ConvertRectsFromFrameSpaceToFilterSpace(

@@ -554,10 +554,11 @@ nsSVGFilterInstance::BuildPrimitivesForSVGFilter(const nsStyleFilter& filter)
   // TODO(mvujovic): Change.
   mFilterRegion = svgFilterRegion;
 
-  // Get the filter region (in filter space aka device space).
+  // Get the filter region in filter space.
   nsIntRect svgFilterSpaceBounds = GetSVGFilterSpaceBounds(svgFilterRegion, 
                                                            canvasTM);
   mFilterSpaceBounds = svgFilterSpaceBounds;
+  ClipPrimitiveSubregions(ToIntRect(mFilterSpaceBounds));
 
   // Get the filter primitive elements.
   nsTArray<nsRefPtr<nsSVGFE> > primitiveElements;
@@ -751,19 +752,6 @@ nsSVGFilterInstance::GetFilterFrame(nsIURI* url)
   return static_cast<nsSVGFilterFrame*>(frame);    
 }
 
-IntRect
-nsSVGFilterInstance::ComputePrimitiveSubregionsUnion()
-{
-  IntRect primitiveSubregionsUnion;
-  for (uint32_t i = 0; i < mPrimitiveDescriptions.Length(); i++) {
-    const FilterPrimitiveDescription& primitiveDescription = 
-      mPrimitiveDescriptions[i];
-    primitiveSubregionsUnion =
-      primitiveSubregionsUnion.Union(primitiveDescription.PrimitiveSubregion());
-  }
-  return primitiveSubregionsUnion;
-}
-
 void
 nsSVGFilterInstance::TranslatePrimitiveSubregions(IntPoint translation)
 {
@@ -777,12 +765,25 @@ nsSVGFilterInstance::TranslatePrimitiveSubregions(IntPoint translation)
 }
 
 void
+nsSVGFilterInstance::ClipPrimitiveSubregions(IntRect clipRect)
+{
+  for (uint32_t i = 0; i < mPrimitiveDescriptions.Length(); i++) {
+    FilterPrimitiveDescription& primitiveDescription = 
+      mPrimitiveDescriptions[i];
+    IntRect primitiveSubregion = primitiveDescription.PrimitiveSubregion();
+    primitiveSubregion = primitiveSubregion.Intersect(clipRect);
+    primitiveDescription.SetPrimitiveSubregion(primitiveSubregion);
+  }
+}
+
+void
 nsSVGFilterInstance::ComputeOverallFilterMetrics(const gfxMatrix& aCanvasTM)
 {
-  // Compute various transforms.
   nsIntPoint filterSpaceOffset = mFilterSpaceBounds.TopLeft();
   mFilterSpaceBounds -= filterSpaceOffset;
   TranslatePrimitiveSubregions(-IntPoint(filterSpaceOffset.x, filterSpaceOffset.y));
+
+  // Compute various transforms.
 
   // Compute filter space to user space transform.
   gfxMatrix filterToUserSpace(

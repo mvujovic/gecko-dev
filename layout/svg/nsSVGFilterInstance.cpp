@@ -131,11 +131,13 @@ nsSVGFilterInstance::Initialize(
 {
   mInitialized = false;
   mTargetFrame = aTarget;
+  mPaintCallback = aPaint;
   mTargetBBox = aOverrideBBox ? *aOverrideBBox : nsSVGUtils::GetBBox(mTargetFrame);
+  mTransformRoot = aTransformRoot;
 
   const SVGFilterElement *filter = aFilterFrame->GetFilterContent();
 
-  uint16_t primitiveUnits =
+  mPrimitiveUnits =
     aFilterFrame->GetEnumValue(SVGFilterElement::PRIMITIVEUNITS);
 
   // Get the user space to device space transform.
@@ -146,48 +148,49 @@ nsSVGFilterInstance::Initialize(
   }
 
   // Get the filter region (in the filtered element's user space).
-  gfxRect filterRegion = GetSVGFilterRegionInTargetUserSpace(filter, aFilterFrame, canvasTM);
-  if (filterRegion.Width() <= 0 || filterRegion.Height() <= 0) {
+  mFilterRegion = GetSVGFilterRegionInTargetUserSpace(filter, aFilterFrame, canvasTM);
+  if (mFilterRegion.Width() <= 0 || mFilterRegion.Height() <= 0) {
     // 0 disables rendering, < 0 is error. dispatch error console warning
     // or error as appropriate.
     return;
   }
 
   // Get the filter region (in filter space aka device space).
-  nsIntRect filterSpaceBounds = GetSVGFilterSpaceBounds(filterRegion, canvasTM);
-  nsIntSize filterRes = filterSpaceBounds.Size();
+  mFilterSpaceBounds = GetSVGFilterSpaceBounds(mFilterRegion, canvasTM);
+  nsIntSize filterRes = mFilterSpaceBounds.Size();
 
   // TODO(mvujovic): Handle a defined filterRes again.
 
   // Get various transforms:
 
-  gfxMatrix filterToUserSpace(filterRegion.Width() / filterRes.width, 0.0f,
-                              0.0f, filterRegion.Height() / filterRes.height,
-                              filterRegion.X(), filterRegion.Y());
+  gfxMatrix filterToUserSpace(mFilterRegion.Width() / filterRes.width, 0.0f,
+                              0.0f, mFilterRegion.Height() / filterRes.height,
+                              mFilterRegion.X(), mFilterRegion.Y());
 
   // Only used (so only set) when we paint:
-  gfxMatrix filterToDeviceSpace;
   if (aPaint) {
-    filterToDeviceSpace = filterToUserSpace *
-              nsSVGUtils::GetCanvasTM(aTarget, nsISVGChildFrame::FOR_PAINTING);
+    mFilterSpaceToDeviceSpaceTransform = filterToUserSpace *
+      nsSVGUtils::GetCanvasTM(aTarget, nsISVGChildFrame::FOR_PAINTING);
   }
 
   // Convert the passed in rects from frame to filter space:
 
   int32_t appUnitsPerCSSPx = aTarget->PresContext()->AppUnitsPerCSSPixel();
 
-  gfxMatrix filterToFrameSpaceInCSSPx =
-    filterToUserSpace * GetUserToFrameSpaceInCSSPxTransform(aTarget);
+  mFilterSpaceToFrameSpaceInCSSPxTransform = filterToUserSpace
+    * GetUserToFrameSpaceInCSSPxTransform(aTarget);
   // filterToFrameSpaceInCSSPx is always invertible
-  gfxMatrix frameSpaceInCSSPxTofilterSpace = filterToFrameSpaceInCSSPx;
+  gfxMatrix frameSpaceInCSSPxTofilterSpace =
+    mFilterSpaceToFrameSpaceInCSSPxTransform;
   frameSpaceInCSSPxTofilterSpace.Invert();
 
-  nsIntRect postFilterDirtyRect =
+  mPostFilterDirtyRect =
     MapFrameRectToFilterSpace(aPostFilterDirtyRect, appUnitsPerCSSPx,
                               frameSpaceInCSSPxTofilterSpace, filterRes);
-  nsIntRect preFilterDirtyRect =
+  mPreFilterDirtyRect =
     MapFrameRectToFilterSpace(aPreFilterDirtyRect, appUnitsPerCSSPx,
                               frameSpaceInCSSPxTofilterSpace, filterRes);
+  
   nsIntRect preFilterVisualOverflowRect;
   if (aPreFilterVisualOverflowRectOverride) {
     preFilterVisualOverflowRect =
@@ -200,18 +203,7 @@ nsSVGFilterInstance::Initialize(
       MapFrameRectToFilterSpace(&preFilterVOR, appUnitsPerCSSPx,
                                 frameSpaceInCSSPxTofilterSpace, filterRes);
   }
-
-  // Setup instance data
-  mPaintCallback = aPaint;
-  mFilterSpaceToDeviceSpaceTransform = filterToDeviceSpace;
-  mFilterSpaceToFrameSpaceInCSSPxTransform = filterToFrameSpaceInCSSPx;
-  mFilterRegion = filterRegion;
-  mFilterSpaceBounds = nsIntRect(0, 0, filterRes.width, filterRes.height);
   mTargetBounds = preFilterVisualOverflowRect;
-  mPostFilterDirtyRect = postFilterDirtyRect;
-  mPreFilterDirtyRect = preFilterDirtyRect;
-  mPrimitiveUnits = primitiveUnits;
-  mTransformRoot = aTransformRoot;
 
   // Build the primitives.
   nsresult rv = BuildPrimitives2();

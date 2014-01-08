@@ -173,24 +173,6 @@ public:
   }
 
 private:
-  void Initialize(nsIFrame *aTarget,
-                  const nsTArray<nsStyleFilter>& aFilters,
-                  nsSVGFilterPaintCallback *aPaint,
-                  const nsRect *aPostFilterDirtyRect,
-                  const nsRect *aPreFilterDirtyRect,
-                  const nsRect *aPreFilterVisualOverflowRectOverride,
-                  const gfxRect *aOverrideBBox,
-                  nsIFrame* aTransformRoot);
-
-  void Initialize2(nsIFrame *aTarget,
-                   const nsTArray<nsStyleFilter>& aFilters,
-                   nsSVGFilterPaintCallback *aPaint,
-                   const nsRect *aPostFilterDirtyRect,
-                   const nsRect *aPreFilterDirtyRect,
-                   const nsRect *aPreFilterVisualOverflowRectOverride,
-                   const gfxRect *aOverrideBBox,
-                   nsIFrame* aTransformRoot);
-
   struct SourceInfo {
     // Specifies which parts of the source need to be rendered.
     // Set by ComputeNeededBoxes().
@@ -233,9 +215,7 @@ private:
    * filter primitives and their connections. This populates
    * mPrimitiveDescriptions and mInputImages.
    */
-  nsresult BuildPrimitives(nsSVGFilterFrame* aFilterFrame);
-
-  nsresult BuildPrimitives2();
+  nsresult BuildPrimitives();
   nsresult BuildPrimitivesForFilter(const nsStyleFilter& filter);
   nsresult BuildPrimitivesForBlur(const nsStyleFilter& filter);
   nsresult BuildPrimitivesForSaturate(const nsStyleFilter& filter);

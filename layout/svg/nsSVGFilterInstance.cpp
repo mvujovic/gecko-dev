@@ -101,27 +101,6 @@ nsSVGFilterInstance::nsSVGFilterInstance(
   const gfxRect *aOverrideBBox,
   nsIFrame* aTransformRoot)
 {
-  Initialize2(aTarget,
-             aFilters,
-             aPaint,
-             aPostFilterDirtyRect,
-             aPreFilterDirtyRect,
-             aPreFilterVisualOverflowRectOverride,
-             aOverrideBBox,
-             aTransformRoot);
-}
-
-void
-nsSVGFilterInstance::Initialize2(
-  nsIFrame *aTarget,
-  const nsTArray<nsStyleFilter>& aFilters,
-  nsSVGFilterPaintCallback *aPaint,
-  const nsRect *aPostFilterDirtyRect,
-  const nsRect *aPreFilterDirtyRect,
-  const nsRect *aPreFilterVisualOverflowRectOverride,
-  const gfxRect *aOverrideBBox,
-  nsIFrame* aTransformRoot)
-{
   mInitialized = false;
   mTargetFrame = aTarget;
   mFilters = aFilters;
@@ -136,7 +115,7 @@ nsSVGFilterInstance::Initialize2(
   mPrimitiveUnits =
     filterFrame->GetEnumValue(SVGFilterElement::PRIMITIVEUNITS);
 
-  nsresult rv = BuildPrimitives2();
+  nsresult rv = BuildPrimitives();
   if (NS_FAILED(rv)) {
     return;
   }
@@ -158,93 +137,6 @@ nsSVGFilterInstance::Initialize2(
   ConvertRectsFromFrameSpaceToFilterSpace(aPostFilterDirtyRect,
                                           aPreFilterDirtyRect,
                                           aPreFilterVisualOverflowRectOverride);
-
-  mInitialized = true;
-}
-
-void
-nsSVGFilterInstance::Initialize(
-  nsIFrame *aTarget,
-  const nsTArray<nsStyleFilter>& aFilters,
-  nsSVGFilterPaintCallback *aPaint,
-  const nsRect *aPostFilterDirtyRect,
-  const nsRect *aPreFilterDirtyRect,
-  const nsRect *aPreFilterVisualOverflowRectOverride,
-  const gfxRect *aOverrideBBox,
-  nsIFrame* aTransformRoot)
-{
-  mInitialized = false; 
-  mTargetFrame = aTarget;
-  mFilters = aFilters;
-  mPaintCallback = aPaint;
-  mTargetBBox = aOverrideBBox ? *aOverrideBBox : nsSVGUtils::GetBBox(mTargetFrame);
-  mTransformRoot = aTransformRoot;
-
-  nsSVGFilterFrame* filterFrame = nsSVGEffects::GetFirstFilterFrame(aTarget);
-  if (!filterFrame)
-    return;
-
-  const SVGFilterElement *filter = filterFrame->GetFilterContent();
-
-  mPrimitiveUnits =
-    filterFrame->GetEnumValue(SVGFilterElement::PRIMITIVEUNITS);
-
-  // Get the user space to device space transform.
-  gfxMatrix canvasTM = GetCanvasTM();
-  if (canvasTM.IsSingular()) {
-    // Nothing to draw.
-    return;
-  }
-
-  // Get the filter region (in the filtered element's user space).
-  mFilterRegion = GetSVGFilterRegionInTargetUserSpace(filter, filterFrame, canvasTM);
-  if (mFilterRegion.Width() <= 0 || mFilterRegion.Height() <= 0) {
-    // 0 disables rendering, < 0 is error. dispatch error console warning
-    // or error as appropriate.
-    return;
-  }
-
-  // Get the filter region (in filter space aka device space).
-  mFilterSpaceBounds = GetSVGFilterSpaceBounds(mFilterRegion, canvasTM);
-  nsIntSize filterRes = mFilterSpaceBounds.Size();
-
-  // TODO(mvujovic): Handle a defined filterRes again.
-
-  // Get various transforms:
-
-  gfxMatrix filterToUserSpace(mFilterRegion.Width() / filterRes.width, 0.0f,
-                              0.0f, mFilterRegion.Height() / filterRes.height,
-                              mFilterRegion.X(), mFilterRegion.Y());
-
-  mFilterSpaceToFrameSpaceInCSSPxTransform = filterToUserSpace
-    * GetUserToFrameSpaceInCSSPxTransform(aTarget);
-
-  // Only used (so only set) when we paint:
-  if (aPaint) {
-    mFilterSpaceToDeviceSpaceTransform = filterToUserSpace *
-      nsSVGUtils::GetCanvasTM(aTarget, nsISVGChildFrame::FOR_PAINTING);
-  }
-
-  // Convert the passed in rects from frame to filter space:
-  ConvertRectsFromFrameSpaceToFilterSpace(aPostFilterDirtyRect,
-                                          aPreFilterDirtyRect,
-                                          aPreFilterVisualOverflowRectOverride);
-
-  // Build the primitives.
-  nsresult rv = BuildPrimitives2();
-  if (NS_FAILED(rv)) {
-    return;
-  }
-
-  rv = BuildPrimitives(filterFrame);
-  if (NS_FAILED(rv)) {
-    return;
-  }
-
-  if (mPrimitiveDescriptions.IsEmpty()) {
-    // Nothing should be rendered, so nothing is needed.
-    return;
-  }
 
   mInitialized = true;
 }
@@ -416,7 +308,7 @@ GetSourceIndices(nsSVGFE* aFilterElement,
 static const float kMaxStdDeviation = 500;
 
 nsresult
-nsSVGFilterInstance::BuildPrimitives2()
+nsSVGFilterInstance::BuildPrimitives()
 {
   NS_ASSERTION(!mPrimitiveDescriptions.Length(), "expected to start building primitives from scratch");
   for (uint32_t i = 0; i < mFilters.Length(); i++) {
@@ -836,62 +728,6 @@ nsSVGFilterInstance::ConvertRectsFromFrameSpaceToFilterSpace(
                                 frameSpaceInCSSPxToFilterSpace, filterRes);
   }
   mTargetBounds = preFilterVisualOverflowRect;
-}
-
-nsresult
-nsSVGFilterInstance::BuildPrimitives(nsSVGFilterFrame* aFilterFrame)
-{
-  nsTArray<nsRefPtr<nsSVGFE> > primitives;
-  GetFilterPrimitiveElements(aFilterFrame->GetFilterContent(), primitives);
-
-  // Maps source image name to source index.
-  nsDataHashtable<nsStringHashKey, int32_t> imageTable(10);
-
-  for (uint32_t i = 0; i < primitives.Length(); ++i) {
-    nsSVGFE* filter = primitives[i];
-
-    nsAutoTArray<int32_t,2> sourceIndices;
-    nsresult rv = GetSourceIndices(filter, i, imageTable, sourceIndices);
-    if (NS_FAILED(rv)) {
-      return rv;
-    }
-
-    IntRect primitiveSubregion =
-      ComputeFilterPrimitiveSubregion(filter, 
-                                      aFilterFrame,
-                                      sourceIndices,
-                                      mFilterSpaceBounds);
-
-    FilterPrimitiveDescription descr =
-      filter->GetPrimitiveDescription(this, primitiveSubregion, mInputImages);
-
-    descr.SetPrimitiveSubregion(primitiveSubregion);
-
-    for (uint32_t j = 0; j < sourceIndices.Length(); j++) {
-      int32_t inputIndex = sourceIndices[j];
-      descr.SetInputPrimitive(j, inputIndex);
-      ColorSpace inputColorSpace =
-        inputIndex < 0 ? SRGB : mPrimitiveDescriptions[inputIndex].OutputColorSpace();
-      ColorSpace desiredInputColorSpace = filter->GetInputColorSpace(j, inputColorSpace);
-      descr.SetInputColorSpace(j, desiredInputColorSpace);
-      if (j == 0) {
-        // the output color space is whatever in1 is if there is an in1
-        descr.SetOutputColorSpace(desiredInputColorSpace);
-      }
-    }
-
-    if (sourceIndices.Length() == 0) {
-      descr.SetOutputColorSpace(filter->GetOutputColorSpace());
-    }
-
-    mPrimitiveDescriptions.AppendElement(descr);
-
-    nsAutoString str;
-    filter->GetResultImageName().GetAnimValue(str, filter);
-    imageTable.Put(str, i);
-  }
-
-  return NS_OK;
 }
 
 void

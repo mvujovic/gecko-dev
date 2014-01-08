@@ -101,15 +101,8 @@ nsSVGFilterInstance::nsSVGFilterInstance(
   const gfxRect *aOverrideBBox,
   nsIFrame* aTransformRoot)
 {
-  nsSVGFilterFrame* filterFrame = nsSVGEffects::GetFirstFilterFrame(aTarget);
-  if (!filterFrame)
-    return;
-
-  // TODO(mvujovic): Move this when we merge this constructor and Initialize.
-  mFilters = aFilters;
-
   Initialize(aTarget,
-             filterFrame,
+             aFilters,
              aPaint,
              aPostFilterDirtyRect,
              aPreFilterDirtyRect,
@@ -119,9 +112,9 @@ nsSVGFilterInstance::nsSVGFilterInstance(
 }
 
 void
-nsSVGFilterInstance::Initialize(
+nsSVGFilterInstance::Initialize2(
   nsIFrame *aTarget,
-  nsSVGFilterFrame *aFilterFrame,
+  const nsTArray<nsStyleFilter>& aFilters,
   nsSVGFilterPaintCallback *aPaint,
   const nsRect *aPostFilterDirtyRect,
   const nsRect *aPreFilterDirtyRect,
@@ -129,16 +122,35 @@ nsSVGFilterInstance::Initialize(
   const gfxRect *aOverrideBBox,
   nsIFrame* aTransformRoot)
 {
-  mInitialized = false;
+  // TODO(mvujovic): Implement.
+}
+
+void
+nsSVGFilterInstance::Initialize(
+  nsIFrame *aTarget,
+  const nsTArray<nsStyleFilter>& aFilters,
+  nsSVGFilterPaintCallback *aPaint,
+  const nsRect *aPostFilterDirtyRect,
+  const nsRect *aPreFilterDirtyRect,
+  const nsRect *aPreFilterVisualOverflowRectOverride,
+  const gfxRect *aOverrideBBox,
+  nsIFrame* aTransformRoot)
+{
+  mInitialized = false; 
   mTargetFrame = aTarget;
+  mFilters = aFilters;
   mPaintCallback = aPaint;
   mTargetBBox = aOverrideBBox ? *aOverrideBBox : nsSVGUtils::GetBBox(mTargetFrame);
   mTransformRoot = aTransformRoot;
 
-  const SVGFilterElement *filter = aFilterFrame->GetFilterContent();
+  nsSVGFilterFrame* filterFrame = nsSVGEffects::GetFirstFilterFrame(aTarget);
+  if (!filterFrame)
+    return;
+
+  const SVGFilterElement *filter = filterFrame->GetFilterContent();
 
   mPrimitiveUnits =
-    aFilterFrame->GetEnumValue(SVGFilterElement::PRIMITIVEUNITS);
+    filterFrame->GetEnumValue(SVGFilterElement::PRIMITIVEUNITS);
 
   // Get the user space to device space transform.
   gfxMatrix canvasTM = GetCanvasTM();
@@ -148,7 +160,7 @@ nsSVGFilterInstance::Initialize(
   }
 
   // Get the filter region (in the filtered element's user space).
-  mFilterRegion = GetSVGFilterRegionInTargetUserSpace(filter, aFilterFrame, canvasTM);
+  mFilterRegion = GetSVGFilterRegionInTargetUserSpace(filter, filterFrame, canvasTM);
   if (mFilterRegion.Width() <= 0 || mFilterRegion.Height() <= 0) {
     // 0 disables rendering, < 0 is error. dispatch error console warning
     // or error as appropriate.
@@ -187,7 +199,7 @@ nsSVGFilterInstance::Initialize(
     return;
   }
 
-  rv = BuildPrimitives(aFilterFrame);
+  rv = BuildPrimitives(filterFrame);
   if (NS_FAILED(rv)) {
     return;
   }

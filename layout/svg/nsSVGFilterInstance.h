@@ -174,13 +174,22 @@ public:
 
 private:
   void Initialize(nsIFrame *aTarget,
-                  nsSVGFilterFrame *aFilterFrame,
+                  const nsTArray<nsStyleFilter>& aFilters,
                   nsSVGFilterPaintCallback *aPaint,
                   const nsRect *aPostFilterDirtyRect,
                   const nsRect *aPreFilterDirtyRect,
                   const nsRect *aPreFilterVisualOverflowRectOverride,
                   const gfxRect *aOverrideBBox,
                   nsIFrame* aTransformRoot);
+
+  void Initialize2(nsIFrame *aTarget,
+                   const nsTArray<nsStyleFilter>& aFilters,
+                   nsSVGFilterPaintCallback *aPaint,
+                   const nsRect *aPostFilterDirtyRect,
+                   const nsRect *aPreFilterDirtyRect,
+                   const nsRect *aPreFilterVisualOverflowRectOverride,
+                   const gfxRect *aOverrideBBox,
+                   nsIFrame* aTransformRoot);
 
   struct SourceInfo {
     // Specifies which parts of the source need to be rendered.

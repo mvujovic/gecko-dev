@@ -53,6 +53,7 @@ class SVGFilterElement;
 class nsSVGFilterInstance
 {
   typedef mozilla::gfx::Point3D Point3D;
+  typedef mozilla::gfx::IntPoint IntPoint;
   typedef mozilla::gfx::IntRect IntRect;
   typedef mozilla::gfx::SourceSurface SourceSurface;
   typedef mozilla::gfx::DrawTarget DrawTarget;
@@ -259,19 +260,23 @@ private:
 
   gfxMatrix GetCanvasTM();
 
-  gfxRect GetFilterRegionInTargetUserSpace(
+  gfxRect GetSVGFilterRegionInTargetUserSpace(
     const mozilla::dom::SVGFilterElement* aFilterElement,
     nsSVGFilterFrame* aFilterFrame,
     const gfxMatrix& aCanvasTM);
 
-  nsIntRect GetFilterSpaceBounds(const gfxRect& aFilterRegion,
-                                 const gfxMatrix& aCanvasTM);
+  nsIntRect GetSVGFilterSpaceBounds(const gfxRect& aSVGFilterRegion,
+                                    const gfxMatrix& aCanvasTM);
 
   void GetFilterPrimitiveElements(
     const mozilla::dom::SVGFilterElement* aFilterElement, 
     nsTArray<nsRefPtr<nsSVGFE> >& aPrimitives);
 
   nsSVGFilterFrame* GetFilterFrame(nsIURI* url);
+
+  IntRect ComputePrimitiveSubregionsUnion();
+  void TranslatePrimitiveSubregions(IntPoint translation);
+  void ComputeOverallFilterMetrics(const gfxMatrix& aCanvasTM);
 
   /**
    * The frame for the element that is currently being filtered.

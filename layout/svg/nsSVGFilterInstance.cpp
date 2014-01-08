@@ -146,7 +146,7 @@ nsSVGFilterInstance::Initialize(
   }
 
   // Get the filter region (in the filtered element's user space).
-  gfxRect filterRegion = GetFilterRegionInTargetUserSpace(filter, aFilterFrame, canvasTM);
+  gfxRect filterRegion = GetSVGFilterRegionInTargetUserSpace(filter, aFilterFrame, canvasTM);
   if (filterRegion.Width() <= 0 || filterRegion.Height() <= 0) {
     // 0 disables rendering, < 0 is error. dispatch error console warning
     // or error as appropriate.
@@ -154,7 +154,7 @@ nsSVGFilterInstance::Initialize(
   }
 
   // Get the filter region (in filter space aka device space).
-  nsIntRect filterSpaceBounds = GetFilterSpaceBounds(filterRegion, canvasTM);
+  nsIntRect filterSpaceBounds = GetSVGFilterSpaceBounds(filterRegion, canvasTM);
   nsIntSize filterRes = filterSpaceBounds.Size();
 
   // TODO(mvujovic): Handle a defined filterRes again.
@@ -526,17 +526,18 @@ nsSVGFilterInstance::BuildPrimitivesForSVGFilter(const nsStyleFilter& filter)
   }
 
   // Get the filter region (in the filtered element's user space).
-  gfxRect filterRegion = GetFilterRegionInTargetUserSpace(filterElement,
-                                                          filterFrame,
-                                                          canvasTM);
-  if (filterRegion.Width() <= 0 || filterRegion.Height() <= 0) {
+  gfxRect svgFilterRegion = GetSVGFilterRegionInTargetUserSpace(filterElement,
+                                                                filterFrame,
+                                                                canvasTM);
+  if (svgFilterRegion.Width() <= 0 || svgFilterRegion.Height() <= 0) {
     // 0 disables rendering, < 0 is error. dispatch error console warning
     // or error as appropriate.
     return NS_ERROR_FAILURE;
   }
 
   // Get the filter region (in filter space aka device space).
-  nsIntRect filterSpaceBounds = GetFilterSpaceBounds(filterRegion, canvasTM);
+  nsIntRect svgFilterSpaceBounds = GetSVGFilterSpaceBounds(svgFilterRegion, 
+                                                           canvasTM);
 
   // Get the filter primitive elements.
   nsTArray<nsRefPtr<nsSVGFE> > primitiveElements;
@@ -565,7 +566,7 @@ nsSVGFilterInstance::BuildPrimitivesForSVGFilter(const nsStyleFilter& filter)
       ComputeFilterPrimitiveSubregion(primitiveElement,
                                       filterFrame,
                                       sourceIndices,
-                                      filterSpaceBounds);
+                                      svgFilterSpaceBounds);
 
     FilterPrimitiveDescription descr = 
       primitiveElement->GetPrimitiveDescription(this, 
@@ -610,7 +611,7 @@ nsSVGFilterInstance::GetCanvasTM()
 }
 
 gfxRect
-nsSVGFilterInstance::GetFilterRegionInTargetUserSpace(
+nsSVGFilterInstance::GetSVGFilterRegionInTargetUserSpace(
   const SVGFilterElement* aFilterElement,
   nsSVGFilterFrame* aFilterFrame,
   const gfxMatrix& aCanvasTM)
@@ -661,24 +662,24 @@ nsSVGFilterInstance::GetFilterRegionInTargetUserSpace(
 // TODO(mvujovic): Handle filterRes when there is a single SVG reference filter.
 // Otherwise, ignore it.
 nsIntRect
-nsSVGFilterInstance::GetFilterSpaceBounds(const gfxRect& aFilterRegion,
-                                          const gfxMatrix& aCanvasTM)
+nsSVGFilterInstance::GetSVGFilterSpaceBounds(const gfxRect& aSVGFilterRegion,
+                                             const gfxMatrix& aCanvasTM)
 {
   if (aCanvasTM.IsSingular()) {
     NS_NOTREACHED("we shouldn't be drawing anything if canvasTM is singular");
     return nsIntRect();
   }
 
-  // Convert the filter region in user space to device pixels.
+  // Convert the filter region in user space to filter space.
   gfxSize scale = aCanvasTM.ScaleFactors(true);
-  gfxRect scaledFilterRegion(aFilterRegion);
-  scaledFilterRegion.Scale(scale.width, scale.height);
+  gfxRect scaledSVGFilterRegion(aSVGFilterRegion);
+  scaledSVGFilterRegion.Scale(scale.width, scale.height);
 
   // We don't care if this overflows, because we can handle upscaling /
   // downscaling to filterRes.
   bool overflow;
   gfxSize filterRes = 
-    nsSVGUtils::ConvertToSurfaceSize(aFilterRegion.Size(), &overflow);
+    nsSVGUtils::ConvertToSurfaceSize(scaledSVGFilterRegion.Size(), &overflow);
   return nsIntRect(0, 0, filterRes.width, filterRes.height);
 }
 
@@ -722,6 +723,51 @@ nsSVGFilterInstance::GetFilterFrame(nsIURI* url)
     return nullptr;
   }
   return static_cast<nsSVGFilterFrame*>(frame);    
+}
+
+IntRect
+nsSVGFilterInstance::ComputePrimitiveSubregionsUnion()
+{
+  IntRect primitiveSubregionsUnion;
+  for (uint32_t i = 0; i < mPrimitiveDescriptions.Length(); i++) {
+    const FilterPrimitiveDescription& primitiveDescription = 
+      mPrimitiveDescriptions[i];
+    primitiveSubregionsUnion.Union(primitiveDescription.PrimitiveSubregion());
+  }
+  return primitiveSubregionsUnion;
+}
+
+void
+nsSVGFilterInstance::TranslatePrimitiveSubregions(IntPoint translation)
+{
+  for (uint32_t i = 0; i < mPrimitiveDescriptions.Length(); i++) {
+    FilterPrimitiveDescription& primitiveDescription = 
+      mPrimitiveDescriptions[i];
+    IntRect primitiveSubregion = primitiveDescription.PrimitiveSubregion();
+    primitiveSubregion += translation;
+    primitiveDescription.SetPrimitiveSubregion(primitiveSubregion);
+  }
+}
+
+void
+nsSVGFilterInstance::ComputeOverallFilterMetrics(const gfxMatrix& aCanvasTM)
+{
+  // Calculate overall filter space bounds.
+  IntRect primitiveSubregionsUnion = ComputePrimitiveSubregionsUnion();
+  IntPoint overallOffset = primitiveSubregionsUnion.TopLeft();
+  TranslatePrimitiveSubregions(-overallOffset);
+  mFilterSpaceBounds = nsIntRect(0, 0, primitiveSubregionsUnion.Width(),
+    primitiveSubregionsUnion.Height());
+
+  // Calculate overall filter region (in target user space).
+  mFilterRegion = gfxRect(overallOffset.x,
+                          overallOffset.y,
+                          mFilterSpaceBounds.Width(),
+                          mFilterSpaceBounds.Height());
+  gfxSize scale = aCanvasTM.ScaleFactors(true);
+  mFilterRegion.Scale(1.0 / scale.width, 1.0 / scale.height);
+
+  // TODO(mvujovic): More calculations...
 }
 
 nsresult

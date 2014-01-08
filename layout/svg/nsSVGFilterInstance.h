@@ -278,6 +278,11 @@ private:
   void TranslatePrimitiveSubregions(IntPoint translation);
   void ComputeOverallFilterMetrics(const gfxMatrix& aCanvasTM);
 
+  void ConvertRectsFromFrameSpaceToFilterSpace(
+    const nsRect *aPostFilterDirtyRect,
+    const nsRect *aPreFilterDirtyRect,
+    const nsRect *aPreFilterVisualOverflowRectOverride);
+
   /**
    * The frame for the element that is currently being filtered.
    */

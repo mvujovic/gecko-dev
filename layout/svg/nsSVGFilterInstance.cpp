@@ -752,14 +752,14 @@ nsSVGFilterInstance::TranslatePrimitiveSubregions(IntPoint translation)
 void
 nsSVGFilterInstance::ComputeOverallFilterMetrics(const gfxMatrix& aCanvasTM)
 {
-  // Calculate overall filter space bounds.
+  // Compute overall filter space bounds.
   IntRect primitiveSubregionsUnion = ComputePrimitiveSubregionsUnion();
   IntPoint overallOffset = primitiveSubregionsUnion.TopLeft();
   TranslatePrimitiveSubregions(-overallOffset);
   mFilterSpaceBounds = nsIntRect(0, 0, primitiveSubregionsUnion.Width(),
     primitiveSubregionsUnion.Height());
 
-  // Calculate overall filter region (in target user space).
+  // Compute overall filter region (in target user space).
   mFilterRegion = gfxRect(overallOffset.x,
                           overallOffset.y,
                           mFilterSpaceBounds.Width(),
@@ -767,7 +767,59 @@ nsSVGFilterInstance::ComputeOverallFilterMetrics(const gfxMatrix& aCanvasTM)
   gfxSize scale = aCanvasTM.ScaleFactors(true);
   mFilterRegion.Scale(1.0 / scale.width, 1.0 / scale.height);
 
-  // TODO(mvujovic): More calculations...
+  // Compute various transforms.
+
+  // Compute filter space to user space transform.
+  gfxMatrix filterToUserSpace(
+    mFilterRegion.Width() / mFilterSpaceBounds.Width(), 0.0f,
+    0.0f, mFilterRegion.Height() / mFilterSpaceBounds.height,
+    mFilterRegion.X(), mFilterRegion.Y());
+
+  // Compute filter space to device space transform. Only used when we paint.
+  if (mPaintCallback) {
+    mFilterSpaceToDeviceSpaceTransform = filterToUserSpace *
+      nsSVGUtils::GetCanvasTM(mTargetFrame, nsISVGChildFrame::FOR_PAINTING);
+  }
+
+  // Compute filter space to frame space transform.
+  mFilterSpaceToFrameSpaceInCSSPxTransform =
+    filterToUserSpace * GetUserToFrameSpaceInCSSPxTransform(mTargetFrame);
+}
+
+void
+nsSVGFilterInstance::ConvertRectsFromFrameSpaceToFilterSpace(
+  const nsRect *aPostFilterDirtyRect,
+  const nsRect *aPreFilterDirtyRect,
+  const nsRect *aPreFilterVisualOverflowRectOverride)
+{
+  // Compute frame space to filter space transform.
+  // Note that filterToFrameSpaceInCSSPx is always invertible.
+  gfxMatrix frameSpaceInCSSPxToFilterSpace =
+    mFilterSpaceToFrameSpaceInCSSPxTransform;
+  frameSpaceInCSSPxToFilterSpace.Invert();
+
+  int32_t appUnitsPerCSSPx = mTargetFrame->PresContext()->AppUnitsPerCSSPixel();
+  gfxIntSize filterRes = mFilterSpaceBounds.Size();
+
+  mPostFilterDirtyRect =
+    MapFrameRectToFilterSpace(aPostFilterDirtyRect, appUnitsPerCSSPx,
+                              frameSpaceInCSSPxToFilterSpace, filterRes);
+  mPreFilterDirtyRect =
+    MapFrameRectToFilterSpace(aPreFilterDirtyRect, appUnitsPerCSSPx,
+                              frameSpaceInCSSPxToFilterSpace, filterRes);
+  nsIntRect preFilterVisualOverflowRect;
+  if (aPreFilterVisualOverflowRectOverride) {
+    preFilterVisualOverflowRect =
+      MapFrameRectToFilterSpace(aPreFilterVisualOverflowRectOverride,
+                                appUnitsPerCSSPx,
+                                frameSpaceInCSSPxToFilterSpace, filterRes);
+  } else {
+    nsRect preFilterVOR = mTargetFrame->GetPreEffectsVisualOverflowRect();
+    preFilterVisualOverflowRect =
+      MapFrameRectToFilterSpace(&preFilterVOR, appUnitsPerCSSPx,
+                                frameSpaceInCSSPxToFilterSpace, filterRes);
+  }
+  mTargetBounds = preFilterVisualOverflowRect;
 }
 
 nsresult

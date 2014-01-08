@@ -101,7 +101,7 @@ nsSVGFilterInstance::nsSVGFilterInstance(
   const gfxRect *aOverrideBBox,
   nsIFrame* aTransformRoot)
 {
-  Initialize(aTarget,
+  Initialize2(aTarget,
              aFilters,
              aPaint,
              aPostFilterDirtyRect,
@@ -122,7 +122,44 @@ nsSVGFilterInstance::Initialize2(
   const gfxRect *aOverrideBBox,
   nsIFrame* aTransformRoot)
 {
-  // TODO(mvujovic): Implement.
+  mInitialized = false;
+  mTargetFrame = aTarget;
+  mFilters = aFilters;
+  mPaintCallback = aPaint;
+  mTargetBBox = aOverrideBBox ? *aOverrideBBox : nsSVGUtils::GetBBox(mTargetFrame);
+  mTransformRoot = aTransformRoot;
+
+  // TODO(mvujovic): Get rid of this.
+  nsSVGFilterFrame* filterFrame = nsSVGEffects::GetFirstFilterFrame(aTarget);
+  if (!filterFrame)
+    return;
+  mPrimitiveUnits =
+    filterFrame->GetEnumValue(SVGFilterElement::PRIMITIVEUNITS);
+
+  nsresult rv = BuildPrimitives2();
+  if (NS_FAILED(rv)) {
+    return;
+  }
+
+  if (mPrimitiveDescriptions.IsEmpty()) {
+    // Nothing should be rendered, so nothing is needed.
+    return;
+  }
+
+  // Get the user space to device space transform.
+  gfxMatrix canvasTM = GetCanvasTM();
+  if (canvasTM.IsSingular()) {
+    // Nothing to draw.
+    return;
+  }
+
+  ComputeOverallFilterMetrics(canvasTM);
+
+  ConvertRectsFromFrameSpaceToFilterSpace(aPostFilterDirtyRect,
+                                          aPreFilterDirtyRect,
+                                          aPreFilterVisualOverflowRectOverride);
+
+  mInitialized = true;
 }
 
 void
@@ -514,10 +551,14 @@ nsSVGFilterInstance::BuildPrimitivesForSVGFilter(const nsStyleFilter& filter)
     // or error as appropriate.
     return NS_ERROR_FAILURE;
   }
+  // TODO(mvujovic): Change.
+  mFilterRegion = svgFilterRegion;
 
   // Get the filter region (in filter space aka device space).
   nsIntRect svgFilterSpaceBounds = GetSVGFilterSpaceBounds(svgFilterRegion, 
                                                            canvasTM);
+  // TODO(mvujovic): Change.
+  mFilterSpaceBounds = svgFilterSpaceBounds;
 
   // Get the filter primitive elements.
   nsTArray<nsRefPtr<nsSVGFE> > primitiveElements;
@@ -712,7 +753,8 @@ nsSVGFilterInstance::ComputePrimitiveSubregionsUnion()
   for (uint32_t i = 0; i < mPrimitiveDescriptions.Length(); i++) {
     const FilterPrimitiveDescription& primitiveDescription = 
       mPrimitiveDescriptions[i];
-    primitiveSubregionsUnion.Union(primitiveDescription.PrimitiveSubregion());
+    primitiveSubregionsUnion =
+      primitiveSubregionsUnion.Union(primitiveDescription.PrimitiveSubregion());
   }
   return primitiveSubregionsUnion;
 }
@@ -732,21 +774,6 @@ nsSVGFilterInstance::TranslatePrimitiveSubregions(IntPoint translation)
 void
 nsSVGFilterInstance::ComputeOverallFilterMetrics(const gfxMatrix& aCanvasTM)
 {
-  // Compute overall filter space bounds.
-  IntRect primitiveSubregionsUnion = ComputePrimitiveSubregionsUnion();
-  IntPoint overallOffset = primitiveSubregionsUnion.TopLeft();
-  TranslatePrimitiveSubregions(-overallOffset);
-  mFilterSpaceBounds = nsIntRect(0, 0, primitiveSubregionsUnion.Width(),
-    primitiveSubregionsUnion.Height());
-
-  // Compute overall filter region (in target user space).
-  mFilterRegion = gfxRect(overallOffset.x,
-                          overallOffset.y,
-                          mFilterSpaceBounds.Width(),
-                          mFilterSpaceBounds.Height());
-  gfxSize scale = aCanvasTM.ScaleFactors(true);
-  mFilterRegion.Scale(1.0 / scale.width, 1.0 / scale.height);
-
   // Compute various transforms.
 
   // Compute filter space to user space transform.

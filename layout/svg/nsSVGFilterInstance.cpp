@@ -150,10 +150,8 @@ nsSVGFilterInstance::nsSVGFilterInstance(
 
   // TODO(mvujovic): Get rid of this.
   nsSVGFilterFrame* filterFrame = nsSVGEffects::GetFirstFilterFrame(aTarget);
-  if (!filterFrame)
-    return;
-  mPrimitiveUnits =
-    filterFrame->GetEnumValue(SVGFilterElement::PRIMITIVEUNITS);
+  mPrimitiveUnits = filterFrame ?
+    filterFrame->GetEnumValue(SVGFilterElement::PRIMITIVEUNITS) : 0;
 
   mFilterRegion = InfiniteGfxRect();
   mFilterSpaceBounds = InfiniteNsIntRect();

@@ -29,6 +29,12 @@ ToNsIntRect(const gfxRect& rect)
   return nsIntRect(rect.X(), rect.Y(), rect.Width(), rect.Height());
 }
 
+static IntRect
+ToIntRect(const gfxRect& rect)
+{
+  return IntRect(rect.X(), rect.Y(), rect.Width(), rect.Height());
+}
+
 /**
  * Converts an nsRect that is relative to a filtered frame's origin (i.e. the
  * top-left corner of its border box) into filter space.
@@ -374,16 +380,29 @@ nsSVGFilterInstance::BuildPrimitivesForFilter(const nsStyleFilter& filter)
 nsresult
 nsSVGFilterInstance::BuildPrimitivesForBlur(const nsStyleFilter& filter)
 {
-  // TODO(mvujovic): Use a real region.
-  IntRect primitiveSubregion(0, 0, 100, 100);
-
   FilterPrimitiveDescription descr(FilterPrimitiveDescription::eGaussianBlur);
-  descr.SetPrimitiveSubregion(primitiveSubregion);
-  descr.SetInputPrimitive(0, FilterPrimitiveDescription::kPrimitiveIndexSourceGraphic);
-  // TODO(mvujovic): What input and output color spaces?
-  descr.SetInputColorSpace(0, SRGB);
-  descr.SetOutputColorSpace(SRGB);
 
+  // TODO(mvujovic): Adjust the region using FilterSupport functions.
+  IntRect primitiveSubregion =
+    ToIntRect(UserSpaceToInitialFilterSpace(mTargetBBox));
+  descr.SetPrimitiveSubregion(primitiveSubregion);
+
+  uint32_t numPrimitiveDescriptions = mPrimitiveDescriptions.Length();
+  if (numPrimitiveDescriptions > 0) {
+    uint32_t lastPrimitiveDescrIndex = numPrimitiveDescriptions - 1;
+    descr.SetInputPrimitive(0, lastPrimitiveDescrIndex);
+
+    ColorSpace lastColorSpace =
+      mPrimitiveDescriptions[lastPrimitiveDescrIndex].OutputColorSpace(); 
+    descr.SetInputColorSpace(0, lastColorSpace);
+    descr.SetOutputColorSpace(lastColorSpace);
+  } else {
+    descr.SetInputPrimitive(0,
+      FilterPrimitiveDescription::kPrimitiveIndexSourceGraphic);
+    descr.SetInputColorSpace(0, SRGB);
+    descr.SetOutputColorSpace(SRGB);
+  }
+  
   nsStyleCoord radiusStyleCoord = filter.GetFilterParameter();
   if (radiusStyleCoord.GetUnit() != eStyleUnit_Coord) {
     NS_NOTREACHED("unexpected unit");
@@ -731,7 +750,8 @@ nsSVGFilterInstance::ComputeNeededBoxes()
   nsIntRegion fillPaintNeededRegion;
   nsIntRegion strokePaintNeededRegion;
 
-  FilterDescription filter(mPrimitiveDescriptions, ToIntRect(mFilterSpaceBounds));
+  FilterDescription filter(
+    mPrimitiveDescriptions, ToIntRect(mFilterSpaceBounds));
   FilterSupport::ComputeSourceNeededRegions(
     filter, mPostFilterDirtyRect,
     sourceGraphicNeededRegion, fillPaintNeededRegion, strokePaintNeededRegion);

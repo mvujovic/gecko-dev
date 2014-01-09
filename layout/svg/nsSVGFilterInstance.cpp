@@ -302,7 +302,7 @@ nsSVGFilterInstance::ComputeFilterPrimitiveSubregion(
                                 &fE->mLengthAttributes[nsSVGFE::ATTR_X],
                                 mTargetBBox,
                                 mTargetFrame);
-  Rect region = ToRect(UserSpaceToFilterSpace(feArea));
+  Rect region = ToRect(UserSpaceToInitialFilterSpace(feArea));
 
   if (!fE->mLengthAttributes[nsSVGFE::ATTR_X].IsExplicitlySet())
     region.x = defaultFilterSubregion.X();

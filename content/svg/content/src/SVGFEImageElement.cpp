@@ -191,7 +191,7 @@ SVGFEImageElement::Href()
 // nsIDOMSVGFEImageElement methods
 
 FilterPrimitiveDescription
-SVGFEImageElement::GetPrimitiveDescription(nsSVGFilterInstance* aInstance,
+SVGFEImageElement::GetPrimitiveDescription(nsFilterInstance* aInstance,
                                            const IntRect& aFilterSubregion,
                                            nsTArray<RefPtr<SourceSurface>>& aInputImages)
 {

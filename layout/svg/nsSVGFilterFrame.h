@@ -75,7 +75,7 @@ private:
   // reference another filter and we don't have a property. Return
   // the referenced filter's frame if available, null otherwise.
   class AutoFilterReferencer;
-  friend class nsSVGFilterInstance;
+  friend class nsFilterInstance;
   nsSVGFilterFrame* GetReferencedFilter();
   nsSVGFilterFrame* GetReferencedFilterIfNotInUse();
 

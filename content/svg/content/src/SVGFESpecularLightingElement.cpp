@@ -6,7 +6,7 @@
 #include "mozilla/dom/SVGFESpecularLightingElement.h"
 #include "mozilla/dom/SVGFESpecularLightingElementBinding.h"
 #include "nsSVGUtils.h"
-#include "nsSVGFilterInstance.h"
+#include "nsFilterInstance.h"
 
 NS_IMPL_NS_NEW_NAMESPACED_SVG_ELEMENT(FESpecularLighting)
 
@@ -68,7 +68,7 @@ SVGFESpecularLightingElement::KernelUnitLengthY()
 // nsSVGElement methods
 
 FilterPrimitiveDescription
-SVGFESpecularLightingElement::GetPrimitiveDescription(nsSVGFilterInstance* aInstance,
+SVGFESpecularLightingElement::GetPrimitiveDescription(nsFilterInstance* aInstance,
                                                       const IntRect& aFilterSubregion,
                                                       nsTArray<RefPtr<SourceSurface>>& aInputImages)
 {

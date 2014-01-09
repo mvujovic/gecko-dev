@@ -35,7 +35,7 @@
 #include "nsSVGClipPathFrame.h"
 #include "nsSVGContainerFrame.h"
 #include "nsSVGEffects.h"
-#include "nsSVGFilterInstance.h"
+#include "nsFilterInstance.h"
 #include "nsSVGFilterPaintCallback.h"
 #include "nsSVGForeignObjectFrame.h"
 #include "nsSVGGeometryFrame.h"
@@ -414,7 +414,7 @@ nsSVGUtils::GetPostFilterVisualOverflowRect(nsIFrame *aFrame,
              !(aFrame->GetStateBits() & NS_FRAME_IS_NONDISPLAY),
              "Non-display SVG do not maintain visual overflow rects");
 
-  nsSVGFilterInstance instance(aFrame, aFrame->StyleSVGReset()->mFilters, nullptr, nullptr,
+  nsFilterInstance instance(aFrame, aFrame->StyleSVGReset()->mFilters, nullptr, nullptr,
                                &aPreFilterRect, &aPreFilterRect, nullptr);
   if (!instance.IsInitialized()) {
     return nsRect();
@@ -882,7 +882,7 @@ nsSVGUtils::PaintFrameWithEffects(nsRenderingContext *aContext,
     SVGPaintCallback paintCallback;
 
     // PaintFilteredFrame
-    nsSVGFilterInstance instance(aFrame, aFrame->StyleSVGReset()->mFilters, &paintCallback,
+    nsFilterInstance instance(aFrame, aFrame->StyleSVGReset()->mFilters, &paintCallback,
                                  dirtyRect, nullptr, nullptr, nullptr,
                                  aTransformRoot);
     if (instance.IsInitialized()) {

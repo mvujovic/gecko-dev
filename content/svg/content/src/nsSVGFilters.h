@@ -16,7 +16,7 @@
 #include "FilterSupport.h"
 #include "gfxASurface.h"
 
-class nsSVGFilterInstance;
+class nsFilterInstance;
 class nsSVGFilterResource;
 class nsSVGNumberPair;
 
@@ -42,7 +42,7 @@ typedef nsSVGElement nsSVGFEBase;
  */
 class nsSVGFE : public nsSVGFEBase
 {
-  friend class nsSVGFilterInstance;
+  friend class nsFilterInstance;
 
 protected:
   typedef mozilla::gfx::SourceSurface SourceSurface;
@@ -94,7 +94,7 @@ public:
   virtual void GetSourceImageNames(nsTArray<nsSVGStringInfo>& aSources);
 
   virtual FilterPrimitiveDescription
-    GetPrimitiveDescription(nsSVGFilterInstance* aInstance,
+    GetPrimitiveDescription(nsFilterInstance* aInstance,
                             const IntRect& aFilterSubregion,
                             nsTArray<mozilla::RefPtr<SourceSurface>>& aInputImages) = 0;
 
@@ -131,7 +131,7 @@ protected:
   // nsSVGElement specializations:
   virtual LengthAttributesInfo GetLengthInfo() MOZ_OVERRIDE;
 
-  Size GetKernelUnitLength(nsSVGFilterInstance* aInstance,
+  Size GetKernelUnitLength(nsFilterInstance* aInstance,
                           nsSVGNumberPair *aKernelUnitLength);
 
   enum { ATTR_X, ATTR_Y, ATTR_WIDTH, ATTR_HEIGHT };
@@ -186,11 +186,11 @@ protected:
   virtual NumberPairAttributesInfo GetNumberPairInfo() MOZ_OVERRIDE;
   virtual StringAttributesInfo GetStringInfo() MOZ_OVERRIDE;
 
-  AttributeMap ComputeLightAttributes(nsSVGFilterInstance* aInstance);
+  AttributeMap ComputeLightAttributes(nsFilterInstance* aInstance);
 
   FilterPrimitiveDescription
     AddLightingAttributes(FilterPrimitiveDescription aDescription,
-                          nsSVGFilterInstance* aInstance);
+                          nsFilterInstance* aInstance);
 
   enum { SURFACE_SCALE, DIFFUSE_CONSTANT, SPECULAR_CONSTANT, SPECULAR_EXPONENT };
   nsSVGNumber2 mNumberAttributes[4];
@@ -220,7 +220,7 @@ public:
   typedef gfx::AttributeMap AttributeMap;
 
   virtual AttributeMap
-    ComputeLightAttributes(nsSVGFilterInstance* aInstance) = 0;
+    ComputeLightAttributes(nsFilterInstance* aInstance) = 0;
 };
 
 }

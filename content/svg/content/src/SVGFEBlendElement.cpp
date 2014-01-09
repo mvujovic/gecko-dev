@@ -71,7 +71,7 @@ SVGFEBlendElement::Mode()
 }
 
 FilterPrimitiveDescription
-SVGFEBlendElement::GetPrimitiveDescription(nsSVGFilterInstance* aInstance,
+SVGFEBlendElement::GetPrimitiveDescription(nsFilterInstance* aInstance,
                                            const IntRect& aFilterSubregion,
                                            nsTArray<RefPtr<SourceSurface>>& aInputImages)
 {

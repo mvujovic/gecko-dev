@@ -5,7 +5,7 @@
 
 #include "mozilla/dom/SVGFEMorphologyElement.h"
 #include "mozilla/dom/SVGFEMorphologyElementBinding.h"
-#include "nsSVGFilterInstance.h"
+#include "nsFilterInstance.h"
 
 NS_IMPL_NS_NEW_NAMESPACED_SVG_ELEMENT(FEMorphology)
 
@@ -95,7 +95,7 @@ SVGFEMorphologyElement::GetSourceImageNames(nsTArray<nsSVGStringInfo>& aSources)
 
 void
 SVGFEMorphologyElement::GetRXY(int32_t *aRX, int32_t *aRY,
-                               const nsSVGFilterInstance& aInstance)
+                               const nsFilterInstance& aInstance)
 {
   // Subtract an epsilon here because we don't want a value that's just
   // slightly larger than an integer to round up to the next integer; it's
@@ -112,7 +112,7 @@ SVGFEMorphologyElement::GetRXY(int32_t *aRX, int32_t *aRY,
 }
 
 FilterPrimitiveDescription
-SVGFEMorphologyElement::GetPrimitiveDescription(nsSVGFilterInstance* aInstance,
+SVGFEMorphologyElement::GetPrimitiveDescription(nsFilterInstance* aInstance,
                                                 const IntRect& aFilterSubregion,
                                                 nsTArray<RefPtr<SourceSurface>>& aInputImages)
 {

@@ -5,7 +5,7 @@
 
 #include "mozilla/dom/SVGFETileElement.h"
 #include "mozilla/dom/SVGFETileElementBinding.h"
-#include "nsSVGFilterInstance.h"
+#include "nsFilterInstance.h"
 #include "gfxUtils.h"
 
 NS_IMPL_NS_NEW_NAMESPACED_SVG_ELEMENT(FETile)
@@ -49,7 +49,7 @@ SVGFETileElement::GetSourceImageNames(nsTArray<nsSVGStringInfo>& aSources)
 // nsSVGElement methods
 
 FilterPrimitiveDescription
-SVGFETileElement::GetPrimitiveDescription(nsSVGFilterInstance* aInstance,
+SVGFETileElement::GetPrimitiveDescription(nsFilterInstance* aInstance,
                                           const IntRect& aFilterSubregion,
                                           nsTArray<RefPtr<SourceSurface>>& aInputImages)
 {

@@ -5,7 +5,7 @@
 
 #include "mozilla/dom/SVGFETurbulenceElement.h"
 #include "mozilla/dom/SVGFETurbulenceElementBinding.h"
-#include "nsSVGFilterInstance.h"
+#include "nsFilterInstance.h"
 #include "nsSVGUtils.h"
 
 NS_IMPL_NS_NEW_NAMESPACED_SVG_ELEMENT(FETurbulence)
@@ -119,7 +119,7 @@ SVGFETurbulenceElement::Type()
 }
 
 FilterPrimitiveDescription
-SVGFETurbulenceElement::GetPrimitiveDescription(nsSVGFilterInstance* aInstance,
+SVGFETurbulenceElement::GetPrimitiveDescription(nsFilterInstance* aInstance,
                                                 const IntRect& aFilterSubregion,
                                                 nsTArray<RefPtr<SourceSurface>>& aInputImages)
 {

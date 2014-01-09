@@ -14,7 +14,7 @@
 #include "nsSVGEffects.h"
 #include "nsSVGElement.h"
 #include "mozilla/dom/SVGFilterElement.h"
-#include "nsSVGFilterInstance.h"
+#include "nsFilterInstance.h"
 #include "nsSVGFilterPaintCallback.h"
 #include "nsSVGIntegrationUtils.h"
 #include "nsSVGUtils.h"

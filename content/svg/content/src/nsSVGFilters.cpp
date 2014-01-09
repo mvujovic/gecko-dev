@@ -13,7 +13,7 @@
 #include "nsSVGIntegerPair.h"
 #include "nsSVGBoolean.h"
 #include "nsCOMPtr.h"
-#include "nsSVGFilterInstance.h"
+#include "nsFilterInstance.h"
 #include "nsSVGEnum.h"
 #include "SVGNumberList.h"
 #include "SVGAnimatedNumberList.h"
@@ -166,7 +166,7 @@ nsSVGFE::HasValidDimensions() const
 }
 
 Size
-nsSVGFE::GetKernelUnitLength(nsSVGFilterInstance* aInstance,
+nsSVGFE::GetKernelUnitLength(nsFilterInstance* aInstance,
                              nsSVGNumberPair *aKernelUnitLength)
 {
   if (!aKernelUnitLength->IsExplicitlySet()) {
@@ -476,7 +476,7 @@ nsSVGFELightingElement::GetSourceImageNames(nsTArray<nsSVGStringInfo>& aSources)
 }
 
 AttributeMap
-nsSVGFELightingElement::ComputeLightAttributes(nsSVGFilterInstance* aInstance)
+nsSVGFELightingElement::ComputeLightAttributes(nsFilterInstance* aInstance)
 {
   // find specified light
   for (nsCOMPtr<nsIContent> child = nsINode::GetFirstChild();
@@ -496,7 +496,7 @@ nsSVGFELightingElement::ComputeLightAttributes(nsSVGFilterInstance* aInstance)
 
 FilterPrimitiveDescription
 nsSVGFELightingElement::AddLightingAttributes(FilterPrimitiveDescription aDescription,
-                                              nsSVGFilterInstance* aInstance)
+                                              nsFilterInstance* aInstance)
 {
   nsIFrame* frame = GetPrimaryFrame();
   if (!frame) {

@@ -50,7 +50,7 @@ class SVGFilterElement;
  * The definition of "filter region" can be found here:
  * http://www.w3.org/TR/SVG11/filters.html#FilterEffectsRegion
  */
-class nsSVGFilterInstance
+class nsFilterInstance
 {
   typedef mozilla::gfx::Point3D Point3D;
   typedef mozilla::gfx::IntPoint IntPoint;
@@ -60,7 +60,7 @@ class nsSVGFilterInstance
   typedef mozilla::gfx::FilterPrimitiveDescription FilterPrimitiveDescription;
 
 public:
-  nsSVGFilterInstance(nsIFrame *aTarget,
+  nsFilterInstance(nsIFrame *aTarget,
                       const nsTArray<nsStyleFilter>& aFilters,
                       nsSVGFilterPaintCallback *aPaint,
                       const nsRect *aPostFilterDirtyRect,
@@ -94,7 +94,7 @@ public:
    * Draws the filter output into aContext. The area that
    * needs to be painted must have been specified before calling this method
    * by passing it as the aPostFilterDirtyRect argument to the
-   * nsSVGFilterInstance constructor.
+   * nsFilterInstance constructor.
    */
   nsresult Render(gfxContext* aContext);
 
@@ -103,7 +103,7 @@ public:
    * space of the area that would be dirtied by mTargetFrame when a given
    * pre-filter area of mTargetFrame is dirtied. The pre-filter area must have
    * been specified before calling this method by passing it as the
-   * aPreFilterDirtyRect argument to the nsSVGFilterInstance constructor.
+   * aPreFilterDirtyRect argument to the nsFilterInstance constructor.
    */
   nsresult ComputePostFilterDirtyRect(nsRect* aPostFilterDirtyRect);
 
@@ -121,7 +121,7 @@ public:
    * area of mTargetFrame that is needed in order to paint the filtered output
    * for a given post-filter dirtied area. The post-filter area must have been
    * specified before calling this method by passing it as the aPostFilterDirtyRect
-   * argument to the nsSVGFilterInstance constructor.
+   * argument to the nsFilterInstance constructor.
    */
   nsresult ComputeSourceNeededRect(nsRect* aDirty);
 

@@ -5,7 +5,7 @@
 
 #include "mozilla/dom/SVGFEPointLightElement.h"
 #include "mozilla/dom/SVGFEPointLightElementBinding.h"
-#include "nsSVGFilterInstance.h"
+#include "nsFilterInstance.h"
 
 NS_IMPL_NS_NEW_NAMESPACED_SVG_ELEMENT(FEPointLight)
 
@@ -48,7 +48,7 @@ SVGFEPointLightElement::AttributeAffectsRendering(int32_t aNameSpaceID,
 //----------------------------------------------------------------------
 
 AttributeMap
-SVGFEPointLightElement::ComputeLightAttributes(nsSVGFilterInstance* aInstance)
+SVGFEPointLightElement::ComputeLightAttributes(nsFilterInstance* aInstance)
 {
   Point3D lightPos;
   GetAnimatedNumberValues(&lightPos.x, &lightPos.y, &lightPos.z, nullptr);

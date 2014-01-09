@@ -5,7 +5,7 @@
 
 #include "mozilla/dom/SVGFEOffsetElement.h"
 #include "mozilla/dom/SVGFEOffsetElementBinding.h"
-#include "nsSVGFilterInstance.h"
+#include "nsFilterInstance.h"
 #include "gfxContext.h"
 
 NS_IMPL_NS_NEW_NAMESPACED_SVG_ELEMENT(FEOffset)
@@ -61,7 +61,7 @@ SVGFEOffsetElement::Dy()
 }
 
 nsIntPoint
-SVGFEOffsetElement::GetOffset(const nsSVGFilterInstance& aInstance)
+SVGFEOffsetElement::GetOffset(const nsFilterInstance& aInstance)
 {
   return nsIntPoint(int32_t(aInstance.GetPrimitiveNumber(
                               SVGContentUtils::X, &mNumberAttributes[DX])),
@@ -70,7 +70,7 @@ SVGFEOffsetElement::GetOffset(const nsSVGFilterInstance& aInstance)
 }
 
 FilterPrimitiveDescription
-SVGFEOffsetElement::GetPrimitiveDescription(nsSVGFilterInstance* aInstance,
+SVGFEOffsetElement::GetPrimitiveDescription(nsFilterInstance* aInstance,
                                             const IntRect& aFilterSubregion,
                                             nsTArray<RefPtr<SourceSurface>>& aInputImages)
 {

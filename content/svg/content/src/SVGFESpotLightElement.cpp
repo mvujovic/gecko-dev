@@ -5,7 +5,7 @@
 
 #include "mozilla/dom/SVGFESpotLightElement.h"
 #include "mozilla/dom/SVGFESpotLightElementBinding.h"
-#include "nsSVGFilterInstance.h"
+#include "nsFilterInstance.h"
 
 NS_IMPL_NS_NEW_NAMESPACED_SVG_ELEMENT(FESpotLight)
 
@@ -58,7 +58,7 @@ SVGFESpotLightElement::AttributeAffectsRendering(int32_t aNameSpaceID,
 //----------------------------------------------------------------------
 
 AttributeMap
-SVGFESpotLightElement::ComputeLightAttributes(nsSVGFilterInstance* aInstance)
+SVGFESpotLightElement::ComputeLightAttributes(nsFilterInstance* aInstance)
 {
   Point3D lightPos, pointsAt;
   float specularExponent, limitingConeAngle;

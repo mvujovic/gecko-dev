@@ -4,7 +4,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // Main header first:
-#include "nsSVGFilterInstance.h"
+#include "nsFilterInstance.h"
 
 // Keep others in (case-insensitive) order:
 #include "gfxPlatform.h"
@@ -122,7 +122,7 @@ GetUserToFrameSpaceInCSSPxTransform(nsIFrame *aFrame)
   return userToFrameSpaceInCSSPx;
 }
 
-nsSVGFilterInstance::nsSVGFilterInstance(
+nsFilterInstance::nsFilterInstance(
   nsIFrame *aTarget,
   const nsTArray<nsStyleFilter>& aFilters,
   nsSVGFilterPaintCallback *aPaint,
@@ -175,7 +175,7 @@ nsSVGFilterInstance::nsSVGFilterInstance(
 }
 
 gfxRect
-nsSVGFilterInstance::UserSpaceToInitialFilterSpace(const gfxRect& aUserSpace)
+nsFilterInstance::UserSpaceToInitialFilterSpace(const gfxRect& aUserSpace)
 {
   NS_ASSERTION(!mCanvasTransform.IsSingular(),
     "we shouldn't be doing anything if canvas transform is singular");
@@ -187,7 +187,7 @@ nsSVGFilterInstance::UserSpaceToInitialFilterSpace(const gfxRect& aUserSpace)
 }
 
 gfxRect
-nsSVGFilterInstance::InitialFilterSpaceToUserSpace(
+nsFilterInstance::InitialFilterSpaceToUserSpace(
   const gfxRect& aInitialFilterSpace)
 {
   NS_ASSERTION(!mCanvasTransform.IsSingular(),
@@ -200,7 +200,7 @@ nsSVGFilterInstance::InitialFilterSpaceToUserSpace(
 }
 
 float
-nsSVGFilterInstance::GetPrimitiveNumber(uint8_t aCtxType, float aValue) const
+nsFilterInstance::GetPrimitiveNumber(uint8_t aCtxType, float aValue) const
 {
   nsSVGLength2 val;
   val.Init(aCtxType, 0xff, aValue,
@@ -227,7 +227,7 @@ nsSVGFilterInstance::GetPrimitiveNumber(uint8_t aCtxType, float aValue) const
 }
 
 Point3D
-nsSVGFilterInstance::ConvertLocation(const Point3D& aPoint) const
+nsFilterInstance::ConvertLocation(const Point3D& aPoint) const
 {
   nsSVGLength2 val[4];
   val[0].Init(SVGContentUtils::X, 0xff, aPoint.x,
@@ -247,7 +247,7 @@ nsSVGFilterInstance::ConvertLocation(const Point3D& aPoint) const
 }
 
 gfxRect
-nsSVGFilterInstance::UserSpaceToFilterSpace(const gfxRect& aRect) const
+nsFilterInstance::UserSpaceToFilterSpace(const gfxRect& aRect) const
 {
   gfxRect r = aRect - mFilterRegion.TopLeft();
   r.Scale(mFilterSpaceBounds.width / mFilterRegion.Width(),
@@ -256,14 +256,14 @@ nsSVGFilterInstance::UserSpaceToFilterSpace(const gfxRect& aRect) const
 }
 
 gfxPoint
-nsSVGFilterInstance::FilterSpaceToUserSpace(const gfxPoint& aPt) const
+nsFilterInstance::FilterSpaceToUserSpace(const gfxPoint& aPt) const
 {
   return gfxPoint(aPt.x * mFilterRegion.Width() / mFilterSpaceBounds.width + mFilterRegion.X(),
                   aPt.y * mFilterRegion.Height() / mFilterSpaceBounds.height + mFilterRegion.Y());
 }
 
 gfxMatrix
-nsSVGFilterInstance::GetUserSpaceToFilterSpaceTransform() const
+nsFilterInstance::GetUserSpaceToFilterSpaceTransform() const
 {
   gfxFloat widthScale = mFilterSpaceBounds.width / mFilterRegion.Width();
   gfxFloat heightScale = mFilterSpaceBounds.height / mFilterRegion.Height();
@@ -273,7 +273,7 @@ nsSVGFilterInstance::GetUserSpaceToFilterSpaceTransform() const
 }
 
 IntRect
-nsSVGFilterInstance::ComputeFilterPrimitiveSubregion(
+nsFilterInstance::ComputeFilterPrimitiveSubregion(
   nsSVGFE* aPrimitiveElement,
   nsSVGFilterFrame* aFilterFrame,
   const nsTArray<int32_t>& aInputIndices,
@@ -366,7 +366,7 @@ GetSourceIndices(nsSVGFE* aFilterElement,
 static const float kMaxStdDeviation = 500;
 
 nsresult
-nsSVGFilterInstance::BuildPrimitives()
+nsFilterInstance::BuildPrimitives()
 {
   NS_ASSERTION(!mPrimitiveDescriptions.Length(), "expected to start building primitives from scratch");
   for (uint32_t i = 0; i < mFilters.Length(); i++) {
@@ -379,7 +379,7 @@ nsSVGFilterInstance::BuildPrimitives()
 }
 
 nsresult
-nsSVGFilterInstance::BuildPrimitivesForFilter(const nsStyleFilter& filter)
+nsFilterInstance::BuildPrimitivesForFilter(const nsStyleFilter& filter)
 {
   nsresult result = NS_ERROR_FAILURE;
   switch(filter.GetType()) {
@@ -397,7 +397,7 @@ nsSVGFilterInstance::BuildPrimitivesForFilter(const nsStyleFilter& filter)
 }
 
 nsresult
-nsSVGFilterInstance::BuildPrimitivesForBlur(const nsStyleFilter& filter)
+nsFilterInstance::BuildPrimitivesForBlur(const nsStyleFilter& filter)
 {
   FilterPrimitiveDescription descr(FilterPrimitiveDescription::eGaussianBlur);
   descr.SetPrimitiveSubregion(InfiniteIntRect());
@@ -439,7 +439,7 @@ nsSVGFilterInstance::BuildPrimitivesForBlur(const nsStyleFilter& filter)
 }
 
 nsresult
-nsSVGFilterInstance::BuildPrimitivesForSaturate(const nsStyleFilter& filter)
+nsFilterInstance::BuildPrimitivesForSaturate(const nsStyleFilter& filter)
 {
   // TODO(mvujovic): Use a real region.
   IntRect primitiveSubregion(0, 0, 100, 100);
@@ -479,7 +479,7 @@ nsSVGFilterInstance::BuildPrimitivesForSaturate(const nsStyleFilter& filter)
 }
 
 nsresult
-nsSVGFilterInstance::BuildPrimitivesForSVGFilter(const nsStyleFilter& filter)
+nsFilterInstance::BuildPrimitivesForSVGFilter(const nsStyleFilter& filter)
 {
   // Get the filter frame.
   nsSVGFilterFrame* filterFrame = GetFilterFrame(filter.GetURL());
@@ -574,7 +574,7 @@ nsSVGFilterInstance::BuildPrimitivesForSVGFilter(const nsStyleFilter& filter)
 }
 
 gfxRect
-nsSVGFilterInstance::GetSVGFilterRegionInTargetUserSpace(
+nsFilterInstance::GetSVGFilterRegionInTargetUserSpace(
   const SVGFilterElement* aFilterElement,
   nsSVGFilterFrame* aFilterFrame)
 {
@@ -626,7 +626,7 @@ nsSVGFilterInstance::GetSVGFilterRegionInTargetUserSpace(
 // return nsIntRect(0, 0, filterRes.width, filterRes.height);
 
 void
-nsSVGFilterInstance::GetFilterPrimitiveElements(
+nsFilterInstance::GetFilterPrimitiveElements(
     const SVGFilterElement* aFilterElement, 
     nsTArray<nsRefPtr<nsSVGFE> >& aPrimitives) {
   for (nsIContent* child = aFilterElement->nsINode::GetFirstChild();
@@ -641,7 +641,7 @@ nsSVGFilterInstance::GetFilterPrimitiveElements(
 }
 
 nsSVGFilterFrame*
-nsSVGFilterInstance::GetFilterFrame(nsIURI* url)
+nsFilterInstance::GetFilterFrame(nsIURI* url)
 {
   if (!url) {
     NS_NOTREACHED("expected a filter URL");
@@ -668,7 +668,7 @@ nsSVGFilterInstance::GetFilterFrame(nsIURI* url)
 }
 
 void
-nsSVGFilterInstance::TranslatePrimitiveSubregions(IntPoint translation)
+nsFilterInstance::TranslatePrimitiveSubregions(IntPoint translation)
 {
   for (uint32_t i = 0; i < mPrimitiveDescriptions.Length(); i++) {
     FilterPrimitiveDescription& primitiveDescription = 
@@ -680,7 +680,7 @@ nsSVGFilterInstance::TranslatePrimitiveSubregions(IntPoint translation)
 }
 
 void
-nsSVGFilterInstance::ClipPrimitiveSubregions(IntRect clipRect)
+nsFilterInstance::ClipPrimitiveSubregions(IntRect clipRect)
 {
   for (uint32_t i = 0; i < mPrimitiveDescriptions.Length(); i++) {
     FilterPrimitiveDescription& primitiveDescription = 
@@ -692,7 +692,7 @@ nsSVGFilterInstance::ClipPrimitiveSubregions(IntRect clipRect)
 }
 
 void
-nsSVGFilterInstance::ComputeOverallFilterMetrics()
+nsFilterInstance::ComputeOverallFilterMetrics()
 {
   // TODO(mvujovic): Follow ComputePostFilterExtents more closely. Check for overflow.
 
@@ -733,7 +733,7 @@ nsSVGFilterInstance::ComputeOverallFilterMetrics()
 }
 
 void
-nsSVGFilterInstance::ConvertRectsFromFrameSpaceToFilterSpace(
+nsFilterInstance::ConvertRectsFromFrameSpaceToFilterSpace(
   const nsRect *aPostFilterDirtyRect,
   const nsRect *aPreFilterDirtyRect,
   const nsRect *aPreFilterVisualOverflowRectOverride)
@@ -769,7 +769,7 @@ nsSVGFilterInstance::ConvertRectsFromFrameSpaceToFilterSpace(
 }
 
 void
-nsSVGFilterInstance::ComputeNeededBoxes()
+nsFilterInstance::ComputeNeededBoxes()
 {
   if (mPrimitiveDescriptions.IsEmpty())
     return;
@@ -800,7 +800,7 @@ nsSVGFilterInstance::ComputeNeededBoxes()
 }
 
 nsresult
-nsSVGFilterInstance::BuildSourcePaint(SourceInfo *aSource,
+nsFilterInstance::BuildSourcePaint(SourceInfo *aSource,
                                       gfxASurface* aTargetSurface,
                                       DrawTarget* aTargetDT)
 {
@@ -867,7 +867,7 @@ nsSVGFilterInstance::BuildSourcePaint(SourceInfo *aSource,
 }
 
 nsresult
-nsSVGFilterInstance::BuildSourcePaints(gfxASurface* aTargetSurface,
+nsFilterInstance::BuildSourcePaints(gfxASurface* aTargetSurface,
                                        DrawTarget* aTargetDT)
 {
   nsresult rv = NS_OK;
@@ -885,7 +885,7 @@ nsSVGFilterInstance::BuildSourcePaints(gfxASurface* aTargetSurface,
 }
 
 nsresult
-nsSVGFilterInstance::BuildSourceImage(gfxASurface* aTargetSurface,
+nsFilterInstance::BuildSourceImage(gfxASurface* aTargetSurface,
                                       DrawTarget* aTargetDT)
 {
   nsIntRect neededRect = mSourceGraphic.mNeededBounds;
@@ -956,7 +956,7 @@ nsSVGFilterInstance::BuildSourceImage(gfxASurface* aTargetSurface,
 }
 
 nsresult
-nsSVGFilterInstance::Render(gfxContext* aContext)
+nsFilterInstance::Render(gfxContext* aContext)
 {
   NS_ASSERTION(mInitialized, "filter instance must be initialized");
 
@@ -1016,7 +1016,7 @@ nsSVGFilterInstance::Render(gfxContext* aContext)
 }
 
 nsresult
-nsSVGFilterInstance::ComputePostFilterDirtyRect(nsRect* aPostFilterDirtyRect)
+nsFilterInstance::ComputePostFilterDirtyRect(nsRect* aPostFilterDirtyRect)
 {
   NS_ASSERTION(mInitialized, "filter instance must be initialized");
 
@@ -1036,7 +1036,7 @@ nsSVGFilterInstance::ComputePostFilterDirtyRect(nsRect* aPostFilterDirtyRect)
 }
 
 nsresult
-nsSVGFilterInstance::ComputePostFilterExtents(nsRect* aPostFilterExtents)
+nsFilterInstance::ComputePostFilterExtents(nsRect* aPostFilterExtents)
 {
   NS_ASSERTION(mInitialized, "filter instance must be initialized");
 
@@ -1060,7 +1060,7 @@ nsSVGFilterInstance::ComputePostFilterExtents(nsRect* aPostFilterExtents)
 }
 
 nsresult
-nsSVGFilterInstance::ComputeSourceNeededRect(nsRect* aDirty)
+nsFilterInstance::ComputeSourceNeededRect(nsRect* aDirty)
 {
   NS_ASSERTION(mInitialized, "filter instance must be initialized");
 
@@ -1071,7 +1071,7 @@ nsSVGFilterInstance::ComputeSourceNeededRect(nsRect* aDirty)
 }
 
 nsRect
-nsSVGFilterInstance::TransformFilterSpaceToFrameSpace(const nsIntRect& aRect) const
+nsFilterInstance::TransformFilterSpaceToFrameSpace(const nsIntRect& aRect) const
 {
   if (aRect.IsEmpty()) {
     return nsRect();

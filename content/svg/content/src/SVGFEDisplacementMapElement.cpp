@@ -5,7 +5,7 @@
 
 #include "mozilla/dom/SVGFEDisplacementMapElement.h"
 #include "mozilla/dom/SVGFEDisplacementMapElementBinding.h"
-#include "nsSVGFilterInstance.h"
+#include "nsFilterInstance.h"
 #include "nsSVGUtils.h"
 
 NS_IMPL_NS_NEW_NAMESPACED_SVG_ELEMENT(FEDisplacementMap)
@@ -91,7 +91,7 @@ SVGFEDisplacementMapElement::YChannelSelector()
 }
 
 FilterPrimitiveDescription
-SVGFEDisplacementMapElement::GetPrimitiveDescription(nsSVGFilterInstance* aInstance,
+SVGFEDisplacementMapElement::GetPrimitiveDescription(nsFilterInstance* aInstance,
                                                      const IntRect& aFilterSubregion,
                                                      nsTArray<RefPtr<SourceSurface>>& aInputImages)
 {

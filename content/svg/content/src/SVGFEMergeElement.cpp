@@ -28,7 +28,7 @@ nsSVGElement::StringInfo SVGFEMergeElement::sStringInfo[1] =
 NS_IMPL_ELEMENT_CLONE_WITH_INIT(SVGFEMergeElement)
 
 FilterPrimitiveDescription
-SVGFEMergeElement::GetPrimitiveDescription(nsSVGFilterInstance* aInstance,
+SVGFEMergeElement::GetPrimitiveDescription(nsFilterInstance* aInstance,
                                            const IntRect& aFilterSubregion,
                                            nsTArray<RefPtr<SourceSurface>>& aInputImages)
 {

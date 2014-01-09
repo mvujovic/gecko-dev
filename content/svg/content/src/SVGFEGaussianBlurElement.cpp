@@ -5,7 +5,7 @@
 
 #include "mozilla/dom/SVGFEGaussianBlurElement.h"
 #include "mozilla/dom/SVGFEGaussianBlurElementBinding.h"
-#include "nsSVGFilterInstance.h"
+#include "nsFilterInstance.h"
 #include "nsSVGUtils.h"
 
 NS_IMPL_NS_NEW_NAMESPACED_SVG_ELEMENT(FEGaussianBlur)
@@ -66,7 +66,7 @@ SVGFEGaussianBlurElement::SetStdDeviation(float stdDeviationX, float stdDeviatio
 static const float kMaxStdDeviation = 500;
 
 FilterPrimitiveDescription
-SVGFEGaussianBlurElement::GetPrimitiveDescription(nsSVGFilterInstance* aInstance,
+SVGFEGaussianBlurElement::GetPrimitiveDescription(nsFilterInstance* aInstance,
                                                   const IntRect& aFilterSubregion,
                                                   nsTArray<RefPtr<SourceSurface>>& aInputImages)
 {

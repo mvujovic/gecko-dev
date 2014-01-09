@@ -7,7 +7,7 @@
 #include "mozilla/dom/SVGFEConvolveMatrixElementBinding.h"
 #include "DOMSVGAnimatedNumberList.h"
 #include "nsSVGUtils.h"
-#include "nsSVGFilterInstance.h"
+#include "nsFilterInstance.h"
 
 NS_IMPL_NS_NEW_NAMESPACED_SVG_ELEMENT(FEConvolveMatrix)
 
@@ -164,7 +164,7 @@ SVGFEConvolveMatrixElement::GetSourceImageNames(nsTArray<nsSVGStringInfo>& aSour
 }
 
 FilterPrimitiveDescription
-SVGFEConvolveMatrixElement::GetPrimitiveDescription(nsSVGFilterInstance* aInstance,
+SVGFEConvolveMatrixElement::GetPrimitiveDescription(nsFilterInstance* aInstance,
                                                     const IntRect& aFilterSubregion,
                                                     nsTArray<RefPtr<SourceSurface>>& aInputImages)
 {

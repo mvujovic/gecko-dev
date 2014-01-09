@@ -33,7 +33,7 @@ nsSVGElement::StringInfo SVGFEFloodElement::sStringInfo[1] =
 NS_IMPL_ELEMENT_CLONE_WITH_INIT(SVGFEFloodElement)
 
 FilterPrimitiveDescription
-SVGFEFloodElement::GetPrimitiveDescription(nsSVGFilterInstance* aInstance,
+SVGFEFloodElement::GetPrimitiveDescription(nsFilterInstance* aInstance,
                                            const IntRect& aFilterSubregion,
                                            nsTArray<RefPtr<SourceSurface>>& aInputImages)
 {

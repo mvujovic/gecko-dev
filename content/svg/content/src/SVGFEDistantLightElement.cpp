@@ -5,7 +5,7 @@
 
 #include "mozilla/dom/SVGFEDistantLightElement.h"
 #include "mozilla/dom/SVGFEDistantLightElementBinding.h"
-#include "nsSVGFilterInstance.h"
+#include "nsFilterInstance.h"
 
 NS_IMPL_NS_NEW_NAMESPACED_SVG_ELEMENT(FEDistantLight)
 
@@ -44,7 +44,7 @@ SVGFEDistantLightElement::AttributeAffectsRendering(int32_t aNameSpaceID,
 }
 
 AttributeMap
-SVGFEDistantLightElement::ComputeLightAttributes(nsSVGFilterInstance* aInstance)
+SVGFEDistantLightElement::ComputeLightAttributes(nsFilterInstance* aInstance)
 {
   float azimuth, elevation;
   GetAnimatedNumberValues(&azimuth, &elevation, nullptr);

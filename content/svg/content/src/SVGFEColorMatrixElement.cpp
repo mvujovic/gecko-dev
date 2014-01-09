@@ -85,7 +85,7 @@ SVGFEColorMatrixElement::GetSourceImageNames(nsTArray<nsSVGStringInfo>& aSources
 }
 
 FilterPrimitiveDescription
-SVGFEColorMatrixElement::GetPrimitiveDescription(nsSVGFilterInstance* aInstance,
+SVGFEColorMatrixElement::GetPrimitiveDescription(nsFilterInstance* aInstance,
                                                  const IntRect& aFilterSubregion,
                                                  nsTArray<RefPtr<SourceSurface>>& aInputImages)
 {

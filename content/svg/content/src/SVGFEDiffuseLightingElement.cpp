@@ -6,7 +6,7 @@
 #include "mozilla/dom/SVGFEDiffuseLightingElement.h"
 #include "mozilla/dom/SVGFEDiffuseLightingElementBinding.h"
 #include "nsSVGUtils.h"
-#include "nsSVGFilterInstance.h"
+#include "nsFilterInstance.h"
 
 NS_IMPL_NS_NEW_NAMESPACED_SVG_ELEMENT(FEDiffuseLighting)
 
@@ -61,7 +61,7 @@ SVGFEDiffuseLightingElement::KernelUnitLengthY()
 }
 
 FilterPrimitiveDescription
-SVGFEDiffuseLightingElement::GetPrimitiveDescription(nsSVGFilterInstance* aInstance,
+SVGFEDiffuseLightingElement::GetPrimitiveDescription(nsFilterInstance* aInstance,
                                                      const IntRect& aFilterSubregion,
                                                      nsTArray<RefPtr<SourceSurface>>& aInputImages)
 {

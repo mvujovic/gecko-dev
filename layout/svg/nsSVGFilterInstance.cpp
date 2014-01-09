@@ -35,6 +35,25 @@ ToIntRect(const gfxRect& rect)
   return IntRect(rect.X(), rect.Y(), rect.Width(), rect.Height());
 }
 
+// TODO(mvujovic): Actually use INT_MAX, INT_MIN.
+static IntRect
+InfiniteIntRect()
+{
+  return IntRect(-5000, -5000, 10000, 10000);
+}
+
+static nsIntRect
+InfiniteNsIntRect()
+{
+  return nsIntRect(-5000, -5000, 10000, 10000);
+}
+
+static gfxRect
+InfiniteGfxRect()
+{
+  return gfxRect(-5000, -5000, 10000, 10000);
+}
+
 /**
  * Converts an nsRect that is relative to a filtered frame's origin (i.e. the
  * top-left corner of its border box) into filter space.
@@ -136,6 +155,8 @@ nsSVGFilterInstance::nsSVGFilterInstance(
   mPrimitiveUnits =
     filterFrame->GetEnumValue(SVGFilterElement::PRIMITIVEUNITS);
 
+  mFilterRegion = InfiniteGfxRect();
+  mFilterSpaceBounds = InfiniteNsIntRect();
   nsresult rv = BuildPrimitives();
   if (NS_FAILED(rv)) {
     return;
@@ -381,11 +402,7 @@ nsresult
 nsSVGFilterInstance::BuildPrimitivesForBlur(const nsStyleFilter& filter)
 {
   FilterPrimitiveDescription descr(FilterPrimitiveDescription::eGaussianBlur);
-
-  // TODO(mvujovic): Adjust the region using FilterSupport functions.
-  IntRect primitiveSubregion =
-    ToIntRect(UserSpaceToInitialFilterSpace(mTargetBBox));
-  descr.SetPrimitiveSubregion(primitiveSubregion);
+  descr.SetPrimitiveSubregion(InfiniteIntRect());
 
   uint32_t numPrimitiveDescriptions = mPrimitiveDescriptions.Length();
   if (numPrimitiveDescriptions > 0) {
@@ -487,13 +504,11 @@ nsSVGFilterInstance::BuildPrimitivesForSVGFilter(const nsStyleFilter& filter)
     // or error as appropriate.
     return NS_ERROR_FAILURE;
   }
-  // TODO(mvujovic): Change.
-  mFilterRegion = svgFilterRegion;
 
   // Get the filter region in filter space.
-  mFilterSpaceBounds = 
+  nsIntRect svgFilterSpaceBounds = 
     ToNsIntRect(UserSpaceToInitialFilterSpace(svgFilterRegion));
-  ClipPrimitiveSubregions(ToIntRect(mFilterSpaceBounds));
+  ClipPrimitiveSubregions(ToIntRect(svgFilterSpaceBounds));
 
   // Get the filter primitive elements.
   nsTArray<nsRefPtr<nsSVGFE> > primitiveElements;
@@ -522,7 +537,7 @@ nsSVGFilterInstance::BuildPrimitivesForSVGFilter(const nsStyleFilter& filter)
       ComputeFilterPrimitiveSubregion(primitiveElement,
                                       filterFrame,
                                       sourceIndices,
-                                      mFilterSpaceBounds);
+                                      svgFilterSpaceBounds);
 
     FilterPrimitiveDescription descr = 
       primitiveElement->GetPrimitiveDescription(this, 
@@ -681,6 +696,21 @@ nsSVGFilterInstance::ClipPrimitiveSubregions(IntRect clipRect)
 void
 nsSVGFilterInstance::ComputeOverallFilterMetrics()
 {
+  // TODO(mvujovic): Follow ComputePostFilterExtents more closely. Check for overflow.
+
+  // Compute initial filter space bounds.
+  FilterDescription filterDescription(mPrimitiveDescriptions,
+                                      InfiniteIntRect());
+  nsIntRect sourceBounds =
+    ToNsIntRect(UserSpaceToInitialFilterSpace(mTargetBBox));
+  nsIntRegion postFilterExtents =
+    FilterSupport::ComputePostFilterExtents(filterDescription, sourceBounds);
+  mFilterSpaceBounds = postFilterExtents.GetBounds();
+
+  // Compute filter region.
+  mFilterRegion = InitialFilterSpaceToUserSpace(mFilterSpaceBounds);
+
+  // Compute final filter space bounds.
   nsIntPoint filterSpaceOffset = mFilterSpaceBounds.TopLeft();
   mFilterSpaceBounds -= filterSpaceOffset;
   TranslatePrimitiveSubregions(-IntPoint(filterSpaceOffset.x, filterSpaceOffset.y));

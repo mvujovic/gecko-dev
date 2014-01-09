@@ -1322,7 +1322,7 @@ PostFilterExtentsForPrimitive(const FilterPrimitiveDescription& aDescription,
 
 /* static */ nsIntRegion
 FilterSupport::ComputePostFilterExtents(const FilterDescription& aFilter,
-                                        const nsIntRegion& aSourceGraphicExtents)
+                                        const nsIntRegion& aSourceGraphicExtent)
 {
   const nsTArray<FilterPrimitiveDescription>& primitives = aFilter.mPrimitives;
   nsIntRegion filterSpace = ThebesIntRect(aFilter.mFilterSpaceBounds);
@@ -1337,7 +1337,7 @@ FilterSupport::ComputePostFilterExtents(const FilterDescription& aFilter,
       MOZ_ASSERT(inputIndex < i, "bad input index");
       nsIntRegion inputExtent =
         ElementForIndex(inputIndex, postFilterExtents,
-                        aSourceGraphicExtents, filterSpace, filterSpace);
+                        aSourceGraphicExtent, filterSpace, filterSpace);
       inputExtents.AppendElement(inputExtent);
     }
     nsIntRegion extent = PostFilterExtentsForPrimitive(descr, inputExtents);

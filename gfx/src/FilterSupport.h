@@ -369,7 +369,7 @@ public:
    */
   static nsIntRegion
   ComputePostFilterExtents(const FilterDescription& aFilter,
-                           const nsIntRegion& aSourceGraphicExtents);
+                           const nsIntRegion& aSourceGraphicExtent);
 
 };
 

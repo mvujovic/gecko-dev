@@ -23,6 +23,12 @@ using namespace mozilla;
 using namespace mozilla::dom;
 using namespace mozilla::gfx;
 
+static nsIntRect
+ToNsIntRect(const gfxRect& rect)
+{
+  return nsIntRect(rect.X(), rect.Y(), rect.Width(), rect.Height());
+}
+
 /**
  * Converts an nsRect that is relative to a filtered frame's origin (i.e. the
  * top-left corner of its border box) into filter space.
@@ -105,8 +111,17 @@ nsSVGFilterInstance::nsSVGFilterInstance(
   mTargetFrame = aTarget;
   mFilters = aFilters;
   mPaintCallback = aPaint;
-  mTargetBBox = aOverrideBBox ? *aOverrideBBox : nsSVGUtils::GetBBox(mTargetFrame);
+  mTargetBBox = aOverrideBBox ? 
+    *aOverrideBBox : nsSVGUtils::GetBBox(mTargetFrame);
   mTransformRoot = aTransformRoot;
+
+  // Get the user space to filter space transform.
+  mCanvasTransform =
+    nsSVGUtils::GetCanvasTM(mTargetFrame, nsISVGChildFrame::FOR_OUTERSVG_TM);
+  if (mCanvasTransform.IsSingular()) {
+    // Nothing to draw.
+    return;
+  }
 
   // TODO(mvujovic): Get rid of this.
   nsSVGFilterFrame* filterFrame = nsSVGEffects::GetFirstFilterFrame(aTarget);
@@ -125,20 +140,38 @@ nsSVGFilterInstance::nsSVGFilterInstance(
     return;
   }
 
-  // Get the user space to device space transform.
-  gfxMatrix canvasTM = GetCanvasTM();
-  if (canvasTM.IsSingular()) {
-    // Nothing to draw.
-    return;
-  }
-
-  ComputeOverallFilterMetrics(canvasTM);
+  ComputeOverallFilterMetrics();
 
   ConvertRectsFromFrameSpaceToFilterSpace(aPostFilterDirtyRect,
                                           aPreFilterDirtyRect,
                                           aPreFilterVisualOverflowRectOverride);
 
   mInitialized = true;
+}
+
+gfxRect
+nsSVGFilterInstance::UserSpaceToInitialFilterSpace(const gfxRect& aUserSpace)
+{
+  NS_ASSERTION(!mCanvasTransform.IsSingular(),
+    "we shouldn't be doing anything if canvas transform is singular");
+
+  gfxRect initialFilterSpace = aUserSpace;
+  gfxSize scale = mCanvasTransform.ScaleFactors(true);
+  initialFilterSpace.Scale(scale.width, scale.height);
+  return initialFilterSpace;
+}
+
+gfxRect
+nsSVGFilterInstance::InitialFilterSpaceToUserSpace(
+  const gfxRect& aInitialFilterSpace)
+{
+  NS_ASSERTION(!mCanvasTransform.IsSingular(),
+    "we shouldn't be doing anything if canvas transform is singular");
+
+  gfxRect userSpace = aInitialFilterSpace;
+  gfxSize scale = mCanvasTransform.ScaleFactors(true);
+  userSpace.Scale(1.0 / scale.width, 1.0 / scale.height);
+  return userSpace;
 }
 
 float
@@ -427,17 +460,9 @@ nsSVGFilterInstance::BuildPrimitivesForSVGFilter(const nsStyleFilter& filter)
     return NS_ERROR_FAILURE;
   }
 
-  // Get the user space to device space transform.
-  gfxMatrix canvasTM = GetCanvasTM();
-  if (canvasTM.IsSingular()) {
-    // Nothing to draw.
-    return NS_ERROR_FAILURE;
-  }
-
   // Get the filter region (in the filtered element's user space).
   gfxRect svgFilterRegion = GetSVGFilterRegionInTargetUserSpace(filterElement,
-                                                                filterFrame,
-                                                                canvasTM);
+                                                                filterFrame);
   if (svgFilterRegion.Width() <= 0 || svgFilterRegion.Height() <= 0) {
     // 0 disables rendering, < 0 is error. dispatch error console warning
     // or error as appropriate.
@@ -447,9 +472,8 @@ nsSVGFilterInstance::BuildPrimitivesForSVGFilter(const nsStyleFilter& filter)
   mFilterRegion = svgFilterRegion;
 
   // Get the filter region in filter space.
-  nsIntRect svgFilterSpaceBounds = GetSVGFilterSpaceBounds(svgFilterRegion, 
-                                                           canvasTM);
-  mFilterSpaceBounds = svgFilterSpaceBounds;
+  mFilterSpaceBounds = 
+    ToNsIntRect(UserSpaceToInitialFilterSpace(svgFilterRegion));
   ClipPrimitiveSubregions(ToIntRect(mFilterSpaceBounds));
 
   // Get the filter primitive elements.
@@ -479,7 +503,7 @@ nsSVGFilterInstance::BuildPrimitivesForSVGFilter(const nsStyleFilter& filter)
       ComputeFilterPrimitiveSubregion(primitiveElement,
                                       filterFrame,
                                       sourceIndices,
-                                      svgFilterSpaceBounds);
+                                      mFilterSpaceBounds);
 
     FilterPrimitiveDescription descr = 
       primitiveElement->GetPrimitiveDescription(this, 
@@ -517,17 +541,10 @@ nsSVGFilterInstance::BuildPrimitivesForSVGFilter(const nsStyleFilter& filter)
   return NS_OK;
 }
 
-gfxMatrix
-nsSVGFilterInstance::GetCanvasTM()
-{
-  return nsSVGUtils::GetCanvasTM(mTargetFrame, nsISVGChildFrame::FOR_OUTERSVG_TM);
-}
-
 gfxRect
 nsSVGFilterInstance::GetSVGFilterRegionInTargetUserSpace(
   const SVGFilterElement* aFilterElement,
-  nsSVGFilterFrame* aFilterFrame,
-  const gfxMatrix& aCanvasTM)
+  nsSVGFilterFrame* aFilterFrame)
 {
   // XXX if filterUnits is set (or has defaulted) to objectBoundingBox, we
   // should send a warning to the error console if the author has used lengths
@@ -538,11 +555,6 @@ nsSVGFilterInstance::GetSVGFilterRegionInTargetUserSpace(
   // deprecate that, since it's too confusing for a bare number to be sometimes
   // interpreted as a fraction of the bounding box and sometimes as user-space
   // units). So really only percentage values should be used in this case.
-
-  if (aCanvasTM.IsSingular()) {
-    NS_NOTREACHED("we shouldn't be drawing anything if canvasTM is singular");
-    return gfxRect();
-  }
 
   // Get the filter region attributes from the filter element.
   nsSVGLength2 XYWH[4];
@@ -564,43 +576,22 @@ nsSVGFilterInstance::GetSVGFilterRegionInTargetUserSpace(
 
   // Match the filter region as closely as possible to the pixel density of the
   // nearest outer 'svg' device space:
-  gfxSize scale = aCanvasTM.ScaleFactors(true);
-  filterRegion.Scale(scale.width, scale.height);
+  filterRegion = UserSpaceToInitialFilterSpace(filterRegion);
   filterRegion.RoundOut();
-  filterRegion.Scale(1.0 / scale.width, 1.0 / scale.height);
-
+  filterRegion = InitialFilterSpaceToUserSpace(filterRegion);
   return filterRegion;
 }
 
 // TODO(mvujovic): Handle filterRes when there is a single SVG reference filter.
 // Otherwise, ignore it.
-nsIntRect
-nsSVGFilterInstance::GetSVGFilterSpaceBounds(const gfxRect& aSVGFilterRegion,
-                                             const gfxMatrix& aCanvasTM)
-{
-  if (aCanvasTM.IsSingular()) {
-    NS_NOTREACHED("we shouldn't be drawing anything if canvasTM is singular");
-    return nsIntRect();
-  }
 
-  // Convert the filter region in user space to filter space.
-  gfxSize scale = aCanvasTM.ScaleFactors(true);
-  gfxRect scaledSVGFilterRegion(aSVGFilterRegion);
-  scaledSVGFilterRegion.Scale(scale.width, scale.height);
-
-  // TODO(mvujovic): Reenable this for the overall filter space bounds.
-  // We don't care if this overflows, because we can handle upscaling /
-  // downscaling to filterRes.
-  // bool overflow;
-  // gfxSize filterRes = 
-  //   nsSVGUtils::ConvertToSurfaceSize(scaledSVGFilterRegion.Size(), &overflow);
-  // return nsIntRect(0, 0, filterRes.width, filterRes.height);
-
-  return nsIntRect(scaledSVGFilterRegion.X(), 
-                   scaledSVGFilterRegion.Y(),
-                   scaledSVGFilterRegion.Width(),
-                   scaledSVGFilterRegion.Height());
-}
+// TODO(mvujovic): Reenable this for the overall filter space bounds.
+// We don't care if this overflows, because we can handle upscaling /
+// downscaling to filterRes.
+// bool overflow;
+// gfxSize filterRes = 
+//   nsSVGUtils::ConvertToSurfaceSize(scaledSVGFilterRegion.Size(), &overflow);
+// return nsIntRect(0, 0, filterRes.width, filterRes.height);
 
 void
 nsSVGFilterInstance::GetFilterPrimitiveElements(
@@ -669,7 +660,7 @@ nsSVGFilterInstance::ClipPrimitiveSubregions(IntRect clipRect)
 }
 
 void
-nsSVGFilterInstance::ComputeOverallFilterMetrics(const gfxMatrix& aCanvasTM)
+nsSVGFilterInstance::ComputeOverallFilterMetrics()
 {
   nsIntPoint filterSpaceOffset = mFilterSpaceBounds.TopLeft();
   mFilterSpaceBounds -= filterSpaceOffset;

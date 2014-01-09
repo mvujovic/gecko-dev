@@ -247,15 +247,9 @@ private:
 
   nsRect TransformFilterSpaceToFrameSpace(const nsIntRect& aRect) const;
 
-  gfxMatrix GetCanvasTM();
-
   gfxRect GetSVGFilterRegionInTargetUserSpace(
     const mozilla::dom::SVGFilterElement* aFilterElement,
-    nsSVGFilterFrame* aFilterFrame,
-    const gfxMatrix& aCanvasTM);
-
-  nsIntRect GetSVGFilterSpaceBounds(const gfxRect& aSVGFilterRegion,
-                                    const gfxMatrix& aCanvasTM);
+    nsSVGFilterFrame* aFilterFrame);
 
   void GetFilterPrimitiveElements(
     const mozilla::dom::SVGFilterElement* aFilterElement, 
@@ -265,12 +259,15 @@ private:
 
   void TranslatePrimitiveSubregions(IntPoint translation);
   void ClipPrimitiveSubregions(IntRect clipRect);
-  void ComputeOverallFilterMetrics(const gfxMatrix& aCanvasTM);
+  void ComputeOverallFilterMetrics();
 
   void ConvertRectsFromFrameSpaceToFilterSpace(
     const nsRect *aPostFilterDirtyRect,
     const nsRect *aPreFilterDirtyRect,
     const nsRect *aPreFilterVisualOverflowRectOverride);
+
+  gfxRect UserSpaceToInitialFilterSpace(const gfxRect& aUserSpace);
+  gfxRect InitialFilterSpaceToUserSpace(const gfxRect& aInitialFilterSpace);
 
   /**
    * The frame for the element that is currently being filtered.
@@ -323,6 +320,7 @@ private:
   nsTArray<FilterPrimitiveDescription> mPrimitiveDescriptions;
 
   nsTArray<nsStyleFilter> mFilters;
+  gfxMatrix mCanvasTransform;
   bool mInitialized;
 };
 

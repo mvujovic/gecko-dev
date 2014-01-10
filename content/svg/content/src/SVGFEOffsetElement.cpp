@@ -61,7 +61,7 @@ SVGFEOffsetElement::Dy()
 }
 
 nsIntPoint
-SVGFEOffsetElement::GetOffset(const nsFilterInstance& aInstance)
+SVGFEOffsetElement::GetOffset(const nsSVGFilterInstance& aInstance)
 {
   return nsIntPoint(int32_t(aInstance.GetPrimitiveNumber(
                               SVGContentUtils::X, &mNumberAttributes[DX])),
@@ -70,7 +70,7 @@ SVGFEOffsetElement::GetOffset(const nsFilterInstance& aInstance)
 }
 
 FilterPrimitiveDescription
-SVGFEOffsetElement::GetPrimitiveDescription(nsFilterInstance* aInstance,
+SVGFEOffsetElement::GetPrimitiveDescription(nsSVGFilterInstance* aInstance,
                                             const IntRect& aFilterSubregion,
                                             nsTArray<RefPtr<SourceSurface>>& aInputImages)
 {

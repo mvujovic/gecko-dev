@@ -61,7 +61,7 @@ SVGFEDiffuseLightingElement::KernelUnitLengthY()
 }
 
 FilterPrimitiveDescription
-SVGFEDiffuseLightingElement::GetPrimitiveDescription(nsFilterInstance* aInstance,
+SVGFEDiffuseLightingElement::GetPrimitiveDescription(nsSVGFilterInstance* aInstance,
                                                      const IntRect& aFilterSubregion,
                                                      nsTArray<RefPtr<SourceSurface>>& aInputImages)
 {

@@ -110,7 +110,7 @@ SVGFECompositeElement::SetK(float k1, float k2, float k3, float k4)
 }
 
 FilterPrimitiveDescription
-SVGFECompositeElement::GetPrimitiveDescription(nsFilterInstance* aInstance,
+SVGFECompositeElement::GetPrimitiveDescription(nsSVGFilterInstance* aInstance,
                                                const IntRect& aFilterSubregion,
                                                nsTArray<RefPtr<SourceSurface>>& aInputImages)
 {

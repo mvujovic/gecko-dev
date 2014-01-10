@@ -164,7 +164,7 @@ SVGFEConvolveMatrixElement::GetSourceImageNames(nsTArray<nsSVGStringInfo>& aSour
 }
 
 FilterPrimitiveDescription
-SVGFEConvolveMatrixElement::GetPrimitiveDescription(nsFilterInstance* aInstance,
+SVGFEConvolveMatrixElement::GetPrimitiveDescription(nsSVGFilterInstance* aInstance,
                                                     const IntRect& aFilterSubregion,
                                                     nsTArray<RefPtr<SourceSurface>>& aInputImages)
 {

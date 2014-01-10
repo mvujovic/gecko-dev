@@ -66,7 +66,7 @@ SVGFEGaussianBlurElement::SetStdDeviation(float stdDeviationX, float stdDeviatio
 static const float kMaxStdDeviation = 500;
 
 FilterPrimitiveDescription
-SVGFEGaussianBlurElement::GetPrimitiveDescription(nsFilterInstance* aInstance,
+SVGFEGaussianBlurElement::GetPrimitiveDescription(nsSVGFilterInstance* aInstance,
                                                   const IntRect& aFilterSubregion,
                                                   nsTArray<RefPtr<SourceSurface>>& aInputImages)
 {

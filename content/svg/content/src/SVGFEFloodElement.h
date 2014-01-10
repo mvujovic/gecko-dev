@@ -32,7 +32,7 @@ public:
   virtual bool SubregionIsUnionOfRegions() MOZ_OVERRIDE { return false; }
 
   virtual FilterPrimitiveDescription
-    GetPrimitiveDescription(nsFilterInstance* aInstance,
+    GetPrimitiveDescription(nsSVGFilterInstance* aInstance,
                             const IntRect& aFilterSubregion,
                             nsTArray<mozilla::RefPtr<SourceSurface>>& aInputImages) MOZ_OVERRIDE;
   virtual nsSVGString& GetResultImageName() MOZ_OVERRIDE { return mStringAttributes[RESULT]; }

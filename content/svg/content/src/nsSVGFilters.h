@@ -98,7 +98,7 @@ public:
   virtual void GetSourceImageNames(nsTArray<nsSVGStringInfo>& aSources);
 
   virtual FilterPrimitiveDescription
-    GetPrimitiveDescription(nsFilterInstance* aInstance,
+    GetPrimitiveDescription(nsSVGFilterInstance* aInstance,
                             const IntRect& aFilterSubregion,
                             nsTArray<mozilla::RefPtr<SourceSurface>>& aInputImages) = 0;
 
@@ -135,8 +135,8 @@ protected:
   // nsSVGElement specializations:
   virtual LengthAttributesInfo GetLengthInfo() MOZ_OVERRIDE;
 
-  Size GetKernelUnitLength(nsFilterInstance* aInstance,
-                          nsSVGNumberPair *aKernelUnitLength);
+  Size GetKernelUnitLength(nsSVGFilterInstance* aInstance,
+                           nsSVGNumberPair *aKernelUnitLength);
 
   enum { ATTR_X, ATTR_Y, ATTR_WIDTH, ATTR_HEIGHT };
   nsSVGLength2 mLengthAttributes[4];
@@ -190,11 +190,11 @@ protected:
   virtual NumberPairAttributesInfo GetNumberPairInfo() MOZ_OVERRIDE;
   virtual StringAttributesInfo GetStringInfo() MOZ_OVERRIDE;
 
-  AttributeMap ComputeLightAttributes(nsFilterInstance* aInstance);
+  AttributeMap ComputeLightAttributes(nsSVGFilterInstance* aInstance);
 
   FilterPrimitiveDescription
     AddLightingAttributes(FilterPrimitiveDescription aDescription,
-                          nsFilterInstance* aInstance);
+                          nsSVGFilterInstance* aInstance);
 
   enum { SURFACE_SCALE, DIFFUSE_CONSTANT, SPECULAR_CONSTANT, SPECULAR_EXPONENT };
   nsSVGNumber2 mNumberAttributes[4];
@@ -224,7 +224,7 @@ public:
   typedef gfx::AttributeMap AttributeMap;
 
   virtual AttributeMap
-    ComputeLightAttributes(nsFilterInstance* aInstance) = 0;
+    ComputeLightAttributes(nsSVGFilterInstance* aInstance) = 0;
 };
 
 }

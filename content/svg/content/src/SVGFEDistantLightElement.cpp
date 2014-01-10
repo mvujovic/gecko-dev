@@ -44,7 +44,7 @@ SVGFEDistantLightElement::AttributeAffectsRendering(int32_t aNameSpaceID,
 }
 
 AttributeMap
-SVGFEDistantLightElement::ComputeLightAttributes(nsFilterInstance* aInstance)
+SVGFEDistantLightElement::ComputeLightAttributes(nsSVGFilterInstance* aInstance)
 {
   float azimuth, elevation;
   GetAnimatedNumberValues(&azimuth, &elevation, nullptr);

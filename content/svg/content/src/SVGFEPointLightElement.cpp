@@ -48,7 +48,7 @@ SVGFEPointLightElement::AttributeAffectsRendering(int32_t aNameSpaceID,
 //----------------------------------------------------------------------
 
 AttributeMap
-SVGFEPointLightElement::ComputeLightAttributes(nsFilterInstance* aInstance)
+SVGFEPointLightElement::ComputeLightAttributes(nsSVGFilterInstance* aInstance)
 {
   Point3D lightPos;
   GetAnimatedNumberValues(&lightPos.x, &lightPos.y, &lightPos.z, nullptr);

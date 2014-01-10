@@ -58,7 +58,7 @@ SVGFESpotLightElement::AttributeAffectsRendering(int32_t aNameSpaceID,
 //----------------------------------------------------------------------
 
 AttributeMap
-SVGFESpotLightElement::ComputeLightAttributes(nsFilterInstance* aInstance)
+SVGFESpotLightElement::ComputeLightAttributes(nsSVGFilterInstance* aInstance)
 {
   Point3D lightPos, pointsAt;
   float specularExponent, limitingConeAngle;

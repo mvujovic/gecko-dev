@@ -68,7 +68,7 @@ SVGFESpecularLightingElement::KernelUnitLengthY()
 // nsSVGElement methods
 
 FilterPrimitiveDescription
-SVGFESpecularLightingElement::GetPrimitiveDescription(nsFilterInstance* aInstance,
+SVGFESpecularLightingElement::GetPrimitiveDescription(nsSVGFilterInstance* aInstance,
                                                       const IntRect& aFilterSubregion,
                                                       nsTArray<RefPtr<SourceSurface>>& aInputImages)
 {

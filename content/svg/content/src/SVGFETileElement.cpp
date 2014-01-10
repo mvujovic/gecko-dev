@@ -49,7 +49,7 @@ SVGFETileElement::GetSourceImageNames(nsTArray<nsSVGStringInfo>& aSources)
 // nsSVGElement methods
 
 FilterPrimitiveDescription
-SVGFETileElement::GetPrimitiveDescription(nsFilterInstance* aInstance,
+SVGFETileElement::GetPrimitiveDescription(nsSVGFilterInstance* aInstance,
                                           const IntRect& aFilterSubregion,
                                           nsTArray<RefPtr<SourceSurface>>& aInputImages)
 {

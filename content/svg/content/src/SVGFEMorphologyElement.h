@@ -33,7 +33,7 @@ protected:
 
 public:
   virtual FilterPrimitiveDescription
-    GetPrimitiveDescription(nsFilterInstance* aInstance,
+    GetPrimitiveDescription(nsSVGFilterInstance* aInstance,
                             const IntRect& aFilterSubregion,
                             nsTArray<mozilla::RefPtr<SourceSurface>>& aInputImages) MOZ_OVERRIDE;
   virtual bool AttributeAffectsRendering(
@@ -51,7 +51,7 @@ public:
   void SetRadius(float rx, float ry);
 
 protected:
-  void GetRXY(int32_t *aRX, int32_t *aRY, const nsFilterInstance& aInstance);
+  void GetRXY(int32_t *aRX, int32_t *aRY, const nsSVGFilterInstance& aInstance);
 
   virtual NumberPairAttributesInfo GetNumberPairInfo() MOZ_OVERRIDE;
   virtual EnumAttributesInfo GetEnumInfo() MOZ_OVERRIDE;

@@ -91,7 +91,7 @@ SVGFEDisplacementMapElement::YChannelSelector()
 }
 
 FilterPrimitiveDescription
-SVGFEDisplacementMapElement::GetPrimitiveDescription(nsFilterInstance* aInstance,
+SVGFEDisplacementMapElement::GetPrimitiveDescription(nsSVGFilterInstance* aInstance,
                                                      const IntRect& aFilterSubregion,
                                                      nsTArray<RefPtr<SourceSurface>>& aInputImages)
 {

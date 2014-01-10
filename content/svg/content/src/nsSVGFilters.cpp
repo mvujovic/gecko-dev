@@ -166,7 +166,7 @@ nsSVGFE::HasValidDimensions() const
 }
 
 Size
-nsSVGFE::GetKernelUnitLength(nsFilterInstance* aInstance,
+nsSVGFE::GetKernelUnitLength(nsSVGFilterInstance* aInstance,
                              nsSVGNumberPair *aKernelUnitLength)
 {
   if (!aKernelUnitLength->IsExplicitlySet()) {
@@ -476,7 +476,7 @@ nsSVGFELightingElement::GetSourceImageNames(nsTArray<nsSVGStringInfo>& aSources)
 }
 
 AttributeMap
-nsSVGFELightingElement::ComputeLightAttributes(nsFilterInstance* aInstance)
+nsSVGFELightingElement::ComputeLightAttributes(nsSVGFilterInstance* aInstance)
 {
   // find specified light
   for (nsCOMPtr<nsIContent> child = nsINode::GetFirstChild();
@@ -496,7 +496,7 @@ nsSVGFELightingElement::ComputeLightAttributes(nsFilterInstance* aInstance)
 
 FilterPrimitiveDescription
 nsSVGFELightingElement::AddLightingAttributes(FilterPrimitiveDescription aDescription,
-                                              nsFilterInstance* aInstance)
+                                              nsSVGFilterInstance* aInstance)
 {
   nsIFrame* frame = GetPrimaryFrame();
   if (!frame) {

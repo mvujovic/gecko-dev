@@ -321,50 +321,6 @@ nsFilterInstance::ComputeFilterPrimitiveSubregion(
   return RoundedToInt(region);
 }
 
-static nsresult
-GetSourceIndices(nsSVGFE* aFilterElement,
-                 int32_t aCurrentIndex,
-                 const nsDataHashtable<nsStringHashKey, int32_t>& aImageTable,
-                 nsTArray<int32_t>& aSourceIndices)
-{
-  nsAutoTArray<nsSVGStringInfo,2> sources;
-  aFilterElement->GetSourceImageNames(sources);
-
-  for (uint32_t j = 0; j < sources.Length(); j++) {
-    nsAutoString str;
-    sources[j].mString->GetAnimValue(str, sources[j].mElement);
-
-    int32_t sourceIndex = 0;
-    if (str.EqualsLiteral("SourceGraphic")) {
-      sourceIndex = FilterPrimitiveDescription::kPrimitiveIndexSourceGraphic;
-    } else if (str.EqualsLiteral("SourceAlpha")) {
-      sourceIndex = FilterPrimitiveDescription::kPrimitiveIndexSourceAlpha;
-    } else if (str.EqualsLiteral("FillPaint")) {
-      sourceIndex = FilterPrimitiveDescription::kPrimitiveIndexFillPaint;
-    } else if (str.EqualsLiteral("StrokePaint")) {
-      sourceIndex = FilterPrimitiveDescription::kPrimitiveIndexStrokePaint;
-    } else if (str.EqualsLiteral("BackgroundImage") ||
-               str.EqualsLiteral("BackgroundAlpha")) {
-      return NS_ERROR_NOT_IMPLEMENTED;
-    } else if (str.EqualsLiteral("")) {
-      sourceIndex = aCurrentIndex == 0 ?
-        FilterPrimitiveDescription::kPrimitiveIndexSourceGraphic :
-        aCurrentIndex - 1;
-    } else {
-      bool inputExists = aImageTable.Get(str, &sourceIndex);
-      if (!inputExists)
-        return NS_ERROR_FAILURE;
-    }
-
-    MOZ_ASSERT(sourceIndex < aCurrentIndex);
-    aSourceIndices.AppendElement(sourceIndex);
-  }
-  return NS_OK;
-}
-
-// TODO(mvujovic): Don't redefine this value from SVGFEGaussianBlurElement.
-static const float kMaxStdDeviation = 500;
-
 nsresult
 nsFilterInstance::BuildPrimitives()
 {
@@ -860,6 +816,9 @@ nsSVGFilterInstance::nsSVGFilterInstance(
     return;
   }
 
+  // Compute the initial filter region (in filter space).
+  mInitialFilterSpaceBounds = ComputeInitialFilterSpaceBounds();
+
   // Compute the filter region (in filter space).
   mFilterSpaceBounds = ComputeFilterSpaceBounds();
 
@@ -1023,11 +982,15 @@ nsSVGFilterInstance::ComputeFilterRegion()
 }
 
 nsIntRect
+nsSVGFilterInstance::ComputeInitialFilterSpaceBounds()
+{
+  return ToNsIntRect(ScaleUserSpaceToFilterSpace(mFilterRegion));
+}
+
+nsIntRect
 nsSVGFilterInstance::ComputeFilterSpaceBounds()
 {
-  gfxRect filterSpaceBounds = gfxRect(gfxPoint(0.0, 0.0), mFilterRegion.Size());
-  filterSpaceBounds = ScaleUserSpaceToFilterSpace(filterSpaceBounds); 
-  return ToNsIntRect(filterSpaceBounds);
+  return nsIntRect(nsIntPoint(0, 0), mInitialFilterSpaceBounds.Size());
 }
 
 gfxRect
@@ -1193,6 +1156,7 @@ nsSVGFilterInstance::GetSourceIndices(
   return NS_OK;
 }
 
+// In initial filter space.
 IntRect
 nsSVGFilterInstance::ComputeFilterPrimitiveSubregion(
   nsSVGFE* aPrimitiveElement,
@@ -1206,12 +1170,12 @@ nsSVGFilterInstance::ComputeFilterPrimitiveSubregion(
       int32_t inputIndex = aInputIndices[i];
       IntRect inputSubregion = inputIndex >= 0 ?
         mPrimitiveDescriptions[inputIndex].PrimitiveSubregion() :
-        ToIntRect(mFilterSpaceBounds);
+        ToIntRect(mInitialFilterSpaceBounds);
 
       defaultFilterSubregion = defaultFilterSubregion.Union(inputSubregion);
     }
   } else {
-    defaultFilterSubregion = ToIntRect(mFilterSpaceBounds);
+    defaultFilterSubregion = ToIntRect(mInitialFilterSpaceBounds);
   }
 
   uint16_t primitiveUnits =
@@ -1221,7 +1185,7 @@ nsSVGFilterInstance::ComputeFilterPrimitiveSubregion(
                                 &fE->mLengthAttributes[nsSVGFE::ATTR_X],
                                 mTargetBBox,
                                 mTargetFrame);
-  Rect region = ToRect(UserSpaceToFilterSpace(feArea));
+  Rect region = ToRect(ScaleUserSpaceToFilterSpace(feArea));
 
   if (!fE->mLengthAttributes[nsSVGFE::ATTR_X].IsExplicitlySet())
     region.x = defaultFilterSubregion.X();
@@ -1273,6 +1237,9 @@ nsCSSFilterInstance::BuildPrimitives()
   }
   return result;  
 }
+
+// TODO(mvujovic): Don't redefine this value from SVGFEGaussianBlurElement.
+static const float kMaxStdDeviation = 500;
 
 nsresult
 nsCSSFilterInstance::BuildPrimitivesForBlur()

@@ -372,6 +372,7 @@ private:
 
   nsSVGFilterFrame* GetFilterFrame(nsIURI* url);
   gfxRect ComputeFilterRegion();
+  nsIntRect ComputeInitialFilterSpaceBounds();
   nsIntRect ComputeFilterSpaceBounds();
   gfxRect ScaleUserSpaceToFilterSpace(const gfxRect& aUserSpace) const;
   gfxRect ScaleFilterSpaceToUserSpace(const gfxRect& aFilterSpace) const;
@@ -400,6 +401,7 @@ private:
   uint16_t mPrimitiveUnits;
   gfxMatrix mCanvasTransform;
   gfxRect mFilterRegion;
+  nsIntRect mInitialFilterSpaceBounds;
   nsIntRect mFilterSpaceBounds;
 };
 

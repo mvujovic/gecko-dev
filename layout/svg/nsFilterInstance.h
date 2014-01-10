@@ -217,8 +217,6 @@ private:
    */
   nsresult BuildPrimitives();
   nsresult BuildPrimitivesForFilter(const nsStyleFilter& filter);
-  nsresult BuildPrimitivesForBlur(const nsStyleFilter& filter);
-  nsresult BuildPrimitivesForSaturate(const nsStyleFilter& filter);
   nsresult BuildPrimitivesForSVGFilter(const nsStyleFilter& filter);
 
   /**
@@ -403,6 +401,26 @@ private:
   gfxMatrix mCanvasTransform;
   gfxRect mFilterRegion;
   nsIntRect mFilterSpaceBounds;
+};
+
+class nsCSSFilterInstance
+{
+typedef mozilla::gfx::FilterPrimitiveDescription FilterPrimitiveDescription;
+
+public:
+  nsCSSFilterInstance(
+    const nsStyleFilter& aFilter,
+    nsTArray<FilterPrimitiveDescription>& aPrimitiveDescriptions);
+
+  bool IsInitialized() const { return mInitialized; }
+
+private:
+  nsresult BuildPrimitives();
+  nsresult BuildPrimitivesForBlur();
+
+  nsStyleFilter mFilter;
+  nsTArray<FilterPrimitiveDescription>& mPrimitiveDescriptions;
+  bool mInitialized;
 };
 
 #endif

@@ -382,100 +382,13 @@ nsresult
 nsFilterInstance::BuildPrimitivesForFilter(const nsStyleFilter& filter)
 {
   nsresult result = NS_ERROR_FAILURE;
-  switch(filter.GetType()) {
-    case NS_STYLE_FILTER_BLUR:
-      result = BuildPrimitivesForBlur(filter);
-      break;
-    case NS_STYLE_FILTER_SATURATE:
-      result = BuildPrimitivesForSaturate(filter);
-      break;
-    case NS_STYLE_FILTER_URL:
-      result = BuildPrimitivesForSVGFilter(filter);
-      break;
+  if (filter.GetType() == NS_STYLE_FILTER_URL) {
+    result = BuildPrimitivesForSVGFilter(filter);
+  } else {
+    nsCSSFilterInstance cssFilterInstance(filter, mPrimitiveDescriptions);
+    result = cssFilterInstance.IsInitialized() ? NS_OK : NS_ERROR_FAILURE;
   }
   return result;
-}
-
-nsresult
-nsFilterInstance::BuildPrimitivesForBlur(const nsStyleFilter& filter)
-{
-  FilterPrimitiveDescription descr(FilterPrimitiveDescription::eGaussianBlur);
-  descr.SetPrimitiveSubregion(InfiniteIntRect());
-
-  uint32_t numPrimitiveDescriptions = mPrimitiveDescriptions.Length();
-  if (numPrimitiveDescriptions > 0) {
-    uint32_t lastPrimitiveDescrIndex = numPrimitiveDescriptions - 1;
-    descr.SetInputPrimitive(0, lastPrimitiveDescrIndex);
-
-    ColorSpace lastColorSpace =
-      mPrimitiveDescriptions[lastPrimitiveDescrIndex].OutputColorSpace(); 
-    descr.SetInputColorSpace(0, lastColorSpace);
-    descr.SetOutputColorSpace(lastColorSpace);
-  } else {
-    descr.SetInputPrimitive(0,
-      FilterPrimitiveDescription::kPrimitiveIndexSourceGraphic);
-    descr.SetInputColorSpace(0, SRGB);
-    descr.SetOutputColorSpace(SRGB);
-  }
-  
-  nsStyleCoord radiusStyleCoord = filter.GetFilterParameter();
-  if (radiusStyleCoord.GetUnit() != eStyleUnit_Coord) {
-    NS_NOTREACHED("unexpected unit");
-    return NS_ERROR_FAILURE;
-  }
-
-  nscoord radiusCoord = radiusStyleCoord.GetCoordValue();
-  float radius = nsPresContext::AppUnitsToFloatCSSPixels(radiusCoord);
-  if (radius < 0) {
-    NS_NOTREACHED("we shouldn't have parsed a negative value");
-    return NS_ERROR_FAILURE;
-  }
-
-  radius = std::min(radius, kMaxStdDeviation);
-  descr.Attributes().Set(eGaussianBlurStdDeviation, Size(radius, radius));
-
-  mPrimitiveDescriptions.AppendElement(descr);
-  return NS_OK;
-}
-
-nsresult
-nsFilterInstance::BuildPrimitivesForSaturate(const nsStyleFilter& filter)
-{
-  // TODO(mvujovic): Use a real region.
-  IntRect primitiveSubregion(0, 0, 100, 100);
-
-  FilterPrimitiveDescription descr(FilterPrimitiveDescription::eColorMatrix);
-  descr.SetPrimitiveSubregion(primitiveSubregion);
-  descr.SetInputPrimitive(0, FilterPrimitiveDescription::kPrimitiveIndexSourceGraphic);
-  // TODO(mvujovic): What input and output color spaces?
-  descr.SetInputColorSpace(0, SRGB);
-  descr.SetOutputColorSpace(SRGB);
-
-  nsStyleCoord proportionStyleCoord = filter.GetFilterParameter();
-  float proportion = 0;
-  switch (proportionStyleCoord.GetUnit()) {
-    case eStyleUnit_Factor:
-      proportion = proportionStyleCoord.GetFactorValue();
-      break;
-    case eStyleUnit_Percent:
-      proportion = proportionStyleCoord.GetPercentValue();
-      break;
-    default:
-      NS_NOTREACHED("unexpected unit");
-      return NS_ERROR_FAILURE;
-  }
-
-  // TODO(mvujovic): Do we need to clamp really big values? WebKit just overflows, with interesting results at large values.
-  if (proportion < 0) {
-    NS_NOTREACHED("we shouldn't have parsed a negative value");
-    return NS_ERROR_FAILURE;
-  }
-
-  descr.Attributes().Set(eColorMatrixType, (uint32_t)SVG_FECOLORMATRIX_TYPE_SATURATE);
-  descr.Attributes().Set(eColorMatrixValues, &proportion, 1);
-
-  mPrimitiveDescriptions.AppendElement(descr);
-  return NS_OK;
 }
 
 nsresult
@@ -1496,4 +1409,80 @@ nsSVGFilterInstance::ComputeFilterPrimitiveSubregion(
   region.RoundOut();
 
   return RoundedToInt(region);
+}
+
+
+// nsCSSFilterInstance
+
+nsCSSFilterInstance::nsCSSFilterInstance(
+  const nsStyleFilter& aFilter,
+  nsTArray<FilterPrimitiveDescription>& aPrimitiveDescriptions) :
+    mFilter(aFilter),
+    mPrimitiveDescriptions(aPrimitiveDescriptions),
+    mInitialized(false)
+{
+  nsresult rv = BuildPrimitives();
+  if (NS_FAILED(rv)) {
+    return;
+  }
+
+  mInitialized = true;
+}
+
+nsresult
+nsCSSFilterInstance::BuildPrimitives()
+{
+  nsresult result;
+  switch(mFilter.GetType()) {
+    case NS_STYLE_FILTER_BLUR:
+      result = BuildPrimitivesForBlur();
+      break;
+    default:
+      NS_NOTREACHED("not a CSS filter type");
+      result = NS_ERROR_FAILURE;
+      break;
+  }
+  return result;  
+}
+
+nsresult
+nsCSSFilterInstance::BuildPrimitivesForBlur()
+{
+  FilterPrimitiveDescription descr(FilterPrimitiveDescription::eGaussianBlur);
+  descr.SetPrimitiveSubregion(InfiniteIntRect());
+
+  uint32_t numPrimitiveDescriptions = mPrimitiveDescriptions.Length();
+  if (numPrimitiveDescriptions > 0) {
+    uint32_t lastPrimitiveDescrIndex = numPrimitiveDescriptions - 1;
+    descr.SetInputPrimitive(0, lastPrimitiveDescrIndex);
+
+    ColorSpace lastColorSpace =
+      mPrimitiveDescriptions[lastPrimitiveDescrIndex].OutputColorSpace();
+    descr.SetInputColorSpace(0, lastColorSpace);
+    descr.SetOutputColorSpace(lastColorSpace);
+  } else {
+    descr.SetInputPrimitive(0,
+      FilterPrimitiveDescription::kPrimitiveIndexSourceGraphic);
+    descr.SetInputColorSpace(0, SRGB);
+    descr.SetOutputColorSpace(SRGB);
+  }
+
+  nsStyleCoord radiusStyleCoord = mFilter.GetFilterParameter();
+  if (radiusStyleCoord.GetUnit() != eStyleUnit_Coord) {
+    NS_NOTREACHED("unexpected unit");
+    return NS_ERROR_FAILURE;
+  }
+
+  nscoord radiusCoord = radiusStyleCoord.GetCoordValue();
+  float radius = nsPresContext::AppUnitsToFloatCSSPixels(radiusCoord);
+  if (radius < 0) {
+    NS_NOTREACHED("we shouldn't have parsed a negative value");
+    return NS_ERROR_FAILURE;
+  }
+
+  radius = std::min(radius, kMaxStdDeviation);
+  descr.Attributes().Set(eGaussianBlurStdDeviation, Size(radius, radius));
+
+  mPrimitiveDescriptions.AppendElement(descr);
+  return NS_OK;
 }

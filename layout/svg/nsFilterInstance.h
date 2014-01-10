@@ -328,14 +328,17 @@ class nsSVGFilterInstance
 {
   typedef mozilla::dom::SVGFilterElement SVGFilterElement;
   typedef mozilla::gfx::FilterPrimitiveDescription FilterPrimitiveDescription;
+  typedef mozilla::gfx::IntRect IntRect;
   typedef mozilla::gfx::Point3D Point3D;
+  typedef mozilla::gfx::SourceSurface SourceSurface;
 
 public:
   nsSVGFilterInstance(
     nsIFrame* aTargetFrame,
     const gfxRect& aTargetBBox,
     const nsStyleFilter& aFilter,
-    nsTArray<FilterPrimitiveDescription>& aPrimitiveDescriptions);
+    nsTArray<FilterPrimitiveDescription>& aPrimitiveDescriptions,
+    nsTArray<mozilla::RefPtr<SourceSurface>>& aInputImages);
 
   bool IsInitialized() const { return mInitialized; }
 
@@ -374,11 +377,24 @@ private:
   nsIntRect ComputeFilterSpaceBounds();
   gfxRect ScaleUserSpaceToFilterSpace(const gfxRect& aUserSpace) const;
   gfxRect ScaleFilterSpaceToUserSpace(const gfxRect& aFilterSpace) const;
+  nsresult BuildPrimitives();  
+  void GetFilterPrimitiveElements(
+    const SVGFilterElement* aFilterElement, 
+    nsTArray<nsRefPtr<nsSVGFE> >& aPrimitives);
+  static nsresult GetSourceIndices(
+    nsSVGFE* aPrimitiveElement,
+    int32_t aCurrentIndex,
+    const nsDataHashtable<nsStringHashKey, int32_t>& aImageTable,
+    nsTArray<int32_t>& aSourceIndices);
+  IntRect ComputeFilterPrimitiveSubregion(
+    nsSVGFE* aPrimitiveElement,
+    const nsTArray<int32_t>& aInputIndices);
 
   nsIFrame* mTargetFrame;
   gfxRect mTargetBBox;
   nsStyleFilter mFilter;
   nsTArray<FilterPrimitiveDescription>& mPrimitiveDescriptions;
+  nsTArray<mozilla::RefPtr<SourceSurface>>& mInputImages;
   bool mInitialized;
 
   nsSVGFilterFrame* mFilterFrame;

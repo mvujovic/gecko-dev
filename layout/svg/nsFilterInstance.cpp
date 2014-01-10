@@ -1088,11 +1088,13 @@ nsSVGFilterInstance::nsSVGFilterInstance(
   nsIFrame* aTargetFrame,
   const gfxRect& aTargetBBox,
   const nsStyleFilter& aFilter,
-  nsTArray<FilterPrimitiveDescription>& aPrimitiveDescriptions) :
+  nsTArray<FilterPrimitiveDescription>& aPrimitiveDescriptions,
+  nsTArray<mozilla::RefPtr<SourceSurface>>& aInputImages) :
     mTargetFrame(aTargetFrame),
     mTargetBBox(aTargetBBox),
     mFilter(aFilter),
     mPrimitiveDescriptions(aPrimitiveDescriptions),
+    mInputImages(aInputImages),
     mInitialized(false)
 {
   // Get the filter frame.
@@ -1121,11 +1123,28 @@ nsSVGFilterInstance::nsSVGFilterInstance(
 
   // Compute the filter region (in target user space).
   mFilterRegion = ComputeFilterRegion();
+  if (mFilterRegion.Width() <= 0 || mFilterRegion.Height() <= 0) {
+    // 0 disables rendering, < 0 is error. dispatch error console warning
+    // or error as appropriate.
+    return;
+  }
 
   // Compute the filter region (in filter space).
   mFilterSpaceBounds = ComputeFilterSpaceBounds();
 
-  // TODO(mvujovic): Build the primitives.
+  // Build the primitives.
+  uint32_t initialNumPrimitives = mPrimitiveDescriptions.Length();
+  nsresult rv = BuildPrimitives();
+  if (NS_FAILED(rv)) {
+    return;
+  }
+
+  uint32_t finalNumPrimitives = mPrimitiveDescriptions.Length();
+  if (finalNumPrimitives == initialNumPrimitives) {
+    // Nothing should be rendered, so nothing is needed.
+    // TODO(mvujovic): Should we really kill the entire filter chain here?
+    return;
+  }
 
   mInitialized = true;
 }
@@ -1305,4 +1324,176 @@ gfxRect
 nsSVGFilterInstance::FilterSpaceToUserSpace(const gfxRect& aFilterSpace) const
 {
   return ScaleFilterSpaceToUserSpace(aFilterSpace) + mFilterRegion.TopLeft();
+}
+
+nsresult
+nsSVGFilterInstance::BuildPrimitives()
+{
+  // Get the filter primitive elements.
+  nsTArray<nsRefPtr<nsSVGFE> > primitiveElements;
+  GetFilterPrimitiveElements(mFilterElement, primitiveElements);
+
+  // Maps source image name to source index.
+  nsDataHashtable<nsStringHashKey, int32_t> imageTable(10);
+
+  for (uint32_t primitiveElementIndex = 0,
+       primitiveDescriptionIndex = mPrimitiveDescriptions.Length();
+       primitiveElementIndex < primitiveElements.Length();
+       primitiveElementIndex++,
+       primitiveDescriptionIndex++) {
+    nsSVGFE* primitiveElement = primitiveElements[primitiveElementIndex];
+
+    nsAutoTArray<int32_t,2> sourceIndices;
+    nsresult rv = GetSourceIndices(primitiveElement,
+                                   primitiveDescriptionIndex,
+                                   imageTable,
+                                   sourceIndices);
+    if (NS_FAILED(rv)) {
+      return rv;
+    }
+
+    IntRect primitiveSubregion =
+      ComputeFilterPrimitiveSubregion(primitiveElement,
+                                      sourceIndices);
+
+    // TODO(mvujovic): Enable this.
+    // FilterPrimitiveDescription descr = 
+    //   primitiveElement->GetPrimitiveDescription(this, 
+    //                                             primitiveSubregion,
+    //                                             mInputImages);
+    FilterPrimitiveDescription descr(FilterPrimitiveDescription::eNone);
+
+    descr.SetPrimitiveSubregion(primitiveSubregion);
+
+    for (uint32_t i = 0; i < sourceIndices.Length(); i++) {
+      int32_t inputIndex = sourceIndices[i];
+      descr.SetInputPrimitive(i, inputIndex);
+      ColorSpace inputColorSpace = inputIndex < 0 ? SRGB :
+          mPrimitiveDescriptions[inputIndex].OutputColorSpace();
+      ColorSpace desiredInputColorSpace =
+        primitiveElement->GetInputColorSpace(i, inputColorSpace);
+      descr.SetInputColorSpace(i, desiredInputColorSpace);
+      if (i == 0) {
+        // the output color space is whatever in1 is if there is an in1
+        descr.SetOutputColorSpace(desiredInputColorSpace);
+      }
+    }
+
+    if (sourceIndices.Length() == 0) {
+      descr.SetOutputColorSpace(primitiveElement->GetOutputColorSpace());
+    }
+
+    mPrimitiveDescriptions.AppendElement(descr);
+
+    nsAutoString str;
+    primitiveElement->GetResultImageName().GetAnimValue(
+      str, primitiveElement);
+    imageTable.Put(str, primitiveDescriptionIndex);
+  }
+
+  return NS_OK;
+}
+
+void
+nsSVGFilterInstance::GetFilterPrimitiveElements(
+    const SVGFilterElement* aFilterElement, 
+    nsTArray<nsRefPtr<nsSVGFE> >& aPrimitives) {
+  for (nsIContent* child = aFilterElement->nsINode::GetFirstChild();
+       child;
+       child = child->GetNextSibling()) {
+    nsRefPtr<nsSVGFE> primitive;
+    CallQueryInterface(child, (nsSVGFE**)getter_AddRefs(primitive));
+    if (primitive) {
+      aPrimitives.AppendElement(primitive);
+    }
+  }  
+}
+
+nsresult
+nsSVGFilterInstance::GetSourceIndices(
+  nsSVGFE* aPrimitiveElement,
+  int32_t aCurrentIndex,
+  const nsDataHashtable<nsStringHashKey, int32_t>& aImageTable,
+  nsTArray<int32_t>& aSourceIndices)
+{
+  nsAutoTArray<nsSVGStringInfo,2> sources;
+  aPrimitiveElement->GetSourceImageNames(sources);
+
+  for (uint32_t j = 0; j < sources.Length(); j++) {
+    nsAutoString str;
+    sources[j].mString->GetAnimValue(str, sources[j].mElement);
+
+    int32_t sourceIndex = 0;
+    if (str.EqualsLiteral("SourceGraphic")) {
+      sourceIndex = FilterPrimitiveDescription::kPrimitiveIndexSourceGraphic;
+    } else if (str.EqualsLiteral("SourceAlpha")) {
+      sourceIndex = FilterPrimitiveDescription::kPrimitiveIndexSourceAlpha;
+    } else if (str.EqualsLiteral("FillPaint")) {
+      sourceIndex = FilterPrimitiveDescription::kPrimitiveIndexFillPaint;
+    } else if (str.EqualsLiteral("StrokePaint")) {
+      sourceIndex = FilterPrimitiveDescription::kPrimitiveIndexStrokePaint;
+    } else if (str.EqualsLiteral("BackgroundImage") ||
+               str.EqualsLiteral("BackgroundAlpha")) {
+      return NS_ERROR_NOT_IMPLEMENTED;
+    } else if (str.EqualsLiteral("")) {
+      sourceIndex = aCurrentIndex == 0 ?
+        FilterPrimitiveDescription::kPrimitiveIndexSourceGraphic :
+        aCurrentIndex - 1;
+    } else {
+      bool inputExists = aImageTable.Get(str, &sourceIndex);
+      if (!inputExists)
+        return NS_ERROR_FAILURE;
+    }
+
+    MOZ_ASSERT(sourceIndex < aCurrentIndex);
+    aSourceIndices.AppendElement(sourceIndex);
+  }
+  return NS_OK;
+}
+
+IntRect
+nsSVGFilterInstance::ComputeFilterPrimitiveSubregion(
+  nsSVGFE* aPrimitiveElement,
+  const nsTArray<int32_t>& aInputIndices)
+{
+  nsSVGFE* fE = aPrimitiveElement;
+
+  IntRect defaultFilterSubregion(0,0,0,0);
+  if (fE->SubregionIsUnionOfRegions()) {
+    for (uint32_t i = 0; i < aInputIndices.Length(); ++i) {
+      int32_t inputIndex = aInputIndices[i];
+      IntRect inputSubregion = inputIndex >= 0 ?
+        mPrimitiveDescriptions[inputIndex].PrimitiveSubregion() :
+        ToIntRect(mFilterSpaceBounds);
+
+      defaultFilterSubregion = defaultFilterSubregion.Union(inputSubregion);
+    }
+  } else {
+    defaultFilterSubregion = ToIntRect(mFilterSpaceBounds);
+  }
+
+  uint16_t primitiveUnits =
+    mFilterFrame->GetEnumValue(SVGFilterElement::PRIMITIVEUNITS);
+  gfxRect feArea = 
+    nsSVGUtils::GetRelativeRect(primitiveUnits,
+                                &fE->mLengthAttributes[nsSVGFE::ATTR_X],
+                                mTargetBBox,
+                                mTargetFrame);
+  Rect region = ToRect(UserSpaceToFilterSpace(feArea));
+
+  if (!fE->mLengthAttributes[nsSVGFE::ATTR_X].IsExplicitlySet())
+    region.x = defaultFilterSubregion.X();
+  if (!fE->mLengthAttributes[nsSVGFE::ATTR_Y].IsExplicitlySet())
+    region.y = defaultFilterSubregion.Y();
+  if (!fE->mLengthAttributes[nsSVGFE::ATTR_WIDTH].IsExplicitlySet())
+    region.width = defaultFilterSubregion.Width();
+  if (!fE->mLengthAttributes[nsSVGFE::ATTR_HEIGHT].IsExplicitlySet())
+    region.height = defaultFilterSubregion.Height();
+
+  // We currently require filter primitive subregions to be pixel-aligned.
+  // Following the spec, any pixel partially in the region is included
+  // in the region.
+  region.RoundOut();
+
+  return RoundedToInt(region);
 }

@@ -1081,3 +1081,228 @@ nsFilterInstance::TransformFilterSpaceToFrameSpace(const nsIntRect& aRect) const
   return nsLayoutUtils::RoundGfxRectToAppRect(r, AppUnitsPerCSSPixel());
 }
 
+
+// nsSVGFilterInstance
+
+nsSVGFilterInstance::nsSVGFilterInstance(
+  nsIFrame* aTargetFrame,
+  const gfxRect& aTargetBBox,
+  const nsStyleFilter& aFilter,
+  nsTArray<FilterPrimitiveDescription>& aPrimitiveDescriptions) :
+    mTargetFrame(aTargetFrame),
+    mTargetBBox(aTargetBBox),
+    mFilter(aFilter),
+    mPrimitiveDescriptions(aPrimitiveDescriptions),
+    mInitialized(false)
+{
+  // Get the filter frame.
+  mFilterFrame = GetFilterFrame(mFilter.GetURL());
+  if (!mFilterFrame) {
+    return;
+  }
+
+  // Get the filter element.
+  mFilterElement = mFilterFrame->GetFilterContent();
+  if (!mFilterElement) {
+    NS_NOTREACHED("filter frame should have a related element");
+    return;
+  }
+
+  // Get the primitive units.
+  mPrimitiveUnits = mFilterFrame->GetEnumValue(SVGFilterElement::PRIMITIVEUNITS);
+
+  // Get the user space to filter space transform.
+  mCanvasTransform =
+    nsSVGUtils::GetCanvasTM(mTargetFrame, nsISVGChildFrame::FOR_OUTERSVG_TM);
+  if (mCanvasTransform.IsSingular()) {
+    // Nothing to draw.
+    return;
+  }
+
+  // Compute the filter region (in target user space).
+  mFilterRegion = ComputeFilterRegion();
+
+  // Compute the filter region (in filter space).
+  mFilterSpaceBounds = ComputeFilterSpaceBounds();
+
+  // TODO(mvujovic): Build the primitives.
+
+  mInitialized = true;
+}
+
+float 
+nsSVGFilterInstance::GetPrimitiveNumber(
+  uint8_t aCtxType,
+  const nsSVGNumber2 *aNumber) const
+{
+  return GetPrimitiveNumber(aCtxType, aNumber->GetAnimValue());
+}
+
+float
+nsSVGFilterInstance::GetPrimitiveNumber(
+  uint8_t aCtxType, 
+  const nsSVGNumberPair *aNumberPair,
+  nsSVGNumberPair::PairIndex aIndex) const
+{
+  return GetPrimitiveNumber(aCtxType, aNumberPair->GetAnimValue(aIndex));
+}
+
+float
+nsSVGFilterInstance::GetPrimitiveNumber(uint8_t aCtxType, float aValue) const
+{
+  nsSVGLength2 val;
+  val.Init(aCtxType, 0xff, aValue,
+           nsIDOMSVGLength::SVG_LENGTHTYPE_NUMBER);
+
+  float value;
+  if (mPrimitiveUnits == SVG_UNIT_TYPE_OBJECTBOUNDINGBOX) {
+    value = nsSVGUtils::ObjectSpace(mTargetBBox, &val);
+  } else {
+    value = nsSVGUtils::UserSpace(mTargetFrame, &val);
+  }
+
+  switch (aCtxType) {
+  case SVGContentUtils::X:
+    return value * mFilterSpaceBounds.width / mFilterRegion.Width();
+  case SVGContentUtils::Y:
+    return value * mFilterSpaceBounds.height / mFilterRegion.Height();
+  case SVGContentUtils::XY:
+  default:
+    return value * SVGContentUtils::ComputeNormalizedHypotenuse(
+                     mFilterSpaceBounds.width / mFilterRegion.Width(),
+                     mFilterSpaceBounds.height / mFilterRegion.Height());
+  }
+
+}
+
+Point3D
+nsSVGFilterInstance::ConvertLocation(const Point3D& aPoint) const
+{
+  nsSVGLength2 val[4];
+  val[0].Init(SVGContentUtils::X, 0xff, aPoint.x,
+              nsIDOMSVGLength::SVG_LENGTHTYPE_NUMBER);
+  val[1].Init(SVGContentUtils::Y, 0xff, aPoint.y,
+              nsIDOMSVGLength::SVG_LENGTHTYPE_NUMBER);
+  // Dummy width/height values
+  val[2].Init(SVGContentUtils::X, 0xff, 0,
+              nsIDOMSVGLength::SVG_LENGTHTYPE_NUMBER);
+  val[3].Init(SVGContentUtils::Y, 0xff, 0,
+              nsIDOMSVGLength::SVG_LENGTHTYPE_NUMBER);
+
+  gfxRect feArea = nsSVGUtils::GetRelativeRect(
+    mPrimitiveUnits, val, mTargetBBox, mTargetFrame);
+  gfxRect r = UserSpaceToFilterSpace(feArea);
+  return Point3D(r.x, r.y, GetPrimitiveNumber(SVGContentUtils::XY, aPoint.z));
+}
+
+nsSVGFilterFrame*
+nsSVGFilterInstance::GetFilterFrame(nsIURI* url)
+{
+  if (!url) {
+    NS_NOTREACHED("expected a filter URL");
+    return nullptr;
+  }
+
+  // Get the referenced filter element.
+  nsReferencedElement filterElement;
+  bool watch = false;
+  filterElement.Reset(mTargetFrame->GetContent(), url, watch);
+  Element* element = filterElement.get();
+  if (!element) {
+    NS_NOTREACHED("expected a referenced element");
+    return nullptr;
+  }
+
+  // Get the frame of the referenced filter element.
+  nsIFrame* frame = element->GetPrimaryFrame();
+  if (frame->GetType() != nsGkAtoms::svgFilterFrame) {
+    NS_NOTREACHED("expected an SVG filter element");
+    return nullptr;
+  }
+  return static_cast<nsSVGFilterFrame*>(frame);    
+}
+
+gfxRect
+nsSVGFilterInstance::ComputeFilterRegion()
+{
+  // XXX if filterUnits is set (or has defaulted) to objectBoundingBox, we
+  // should send a warning to the error console if the author has used lengths
+  // with units. This is a common mistake and can result in filterRes being
+  // *massive* below (because we ignore the units and interpret the number as
+  // a factor of the bbox width/height). We should also send a warning if the
+  // user uses a number without units (a future SVG spec should really
+  // deprecate that, since it's too confusing for a bare number to be sometimes
+  // interpreted as a fraction of the bounding box and sometimes as user-space
+  // units). So really only percentage values should be used in this case.
+
+  // Get the filter region attributes from the filter element.
+  nsSVGLength2 XYWH[4];
+  NS_ABORT_IF_FALSE(sizeof(mFilterElement->mLengthAttributes) == sizeof(XYWH),
+                    "XYWH size incorrect");
+  memcpy(XYWH, 
+         mFilterElement->mLengthAttributes,
+         sizeof(mFilterElement->mLengthAttributes));
+  XYWH[0] = *mFilterFrame->GetLengthValue(SVGFilterElement::ATTR_X);
+  XYWH[1] = *mFilterFrame->GetLengthValue(SVGFilterElement::ATTR_Y);
+  XYWH[2] = *mFilterFrame->GetLengthValue(SVGFilterElement::ATTR_WIDTH);
+  XYWH[3] = *mFilterFrame->GetLengthValue(SVGFilterElement::ATTR_HEIGHT);
+
+  // The filter region in user space, in user units:
+  uint16_t filterUnits = 
+    mFilterFrame->GetEnumValue(SVGFilterElement::FILTERUNITS);
+  gfxRect filterRegion = 
+    nsSVGUtils::GetRelativeRect(filterUnits, XYWH, mTargetBBox, mFilterFrame);
+
+  // Match the filter region as closely as possible to the pixel density of the
+  // nearest outer 'svg' device space:
+  filterRegion = ScaleUserSpaceToFilterSpace(filterRegion);
+  filterRegion.RoundOut();
+  filterRegion = ScaleFilterSpaceToUserSpace(filterRegion);
+  return filterRegion;
+}
+
+nsIntRect
+nsSVGFilterInstance::ComputeFilterSpaceBounds()
+{
+  gfxRect filterSpaceBounds = gfxRect(gfxPoint(0.0, 0.0), mFilterRegion.Size());
+  filterSpaceBounds = ScaleUserSpaceToFilterSpace(filterSpaceBounds); 
+  return ToNsIntRect(filterSpaceBounds);
+}
+
+gfxRect
+nsSVGFilterInstance::ScaleUserSpaceToFilterSpace(
+  const gfxRect& aUserSpace) const
+{
+  NS_ASSERTION(!mCanvasTransform.IsSingular(),
+    "we shouldn't be doing anything if canvas transform is singular");
+
+  gfxRect filterSpace = aUserSpace;
+  gfxSize scale = mCanvasTransform.ScaleFactors(true);
+  filterSpace.Scale(scale.width, scale.height);
+  return filterSpace;
+}
+
+gfxRect
+nsSVGFilterInstance::ScaleFilterSpaceToUserSpace(
+  const gfxRect& aFilterSpace) const
+{
+  NS_ASSERTION(!mCanvasTransform.IsSingular(),
+    "we shouldn't be doing anything if canvas transform is singular");
+
+  gfxRect userSpace = aFilterSpace;
+  gfxSize scale = mCanvasTransform.ScaleFactors(true);
+  userSpace.Scale(1.0 / scale.width, 1.0 / scale.height);
+  return userSpace;
+}
+
+gfxRect
+nsSVGFilterInstance::UserSpaceToFilterSpace(const gfxRect& aUserSpace) const
+{
+  return ScaleUserSpaceToFilterSpace(aUserSpace - mFilterRegion.TopLeft());
+}
+
+gfxRect
+nsSVGFilterInstance::FilterSpaceToUserSpace(const gfxRect& aFilterSpace) const
+{
+  return ScaleFilterSpaceToUserSpace(aFilterSpace) + mFilterRegion.TopLeft();
+}

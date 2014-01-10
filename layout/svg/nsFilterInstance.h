@@ -61,13 +61,13 @@ class nsFilterInstance
 
 public:
   nsFilterInstance(nsIFrame *aTarget,
-                      const nsTArray<nsStyleFilter>& aFilters,
-                      nsSVGFilterPaintCallback *aPaint,
-                      const nsRect *aPostFilterDirtyRect,
-                      const nsRect *aPreFilterDirtyRect,
-                      const nsRect *aPreFilterVisualOverflowRectOverride,
-                      const gfxRect *aOverrideBBox = nullptr,
-                      nsIFrame* aTransformRoot = nullptr);
+                   const nsTArray<nsStyleFilter>& aFilters,
+                   nsSVGFilterPaintCallback *aPaint,
+                   const nsRect *aPostFilterDirtyRect,
+                   const nsRect *aPreFilterDirtyRect,
+                   const nsRect *aPreFilterVisualOverflowRectOverride,
+                   const gfxRect *aOverrideBBox = nullptr,
+                   nsIFrame* aTransformRoot = nullptr);
 
   bool IsInitialized() const { return mInitialized; }
 
@@ -322,6 +322,71 @@ private:
   nsTArray<nsStyleFilter> mFilters;
   gfxMatrix mCanvasTransform;
   bool mInitialized;
+};
+
+class nsSVGFilterInstance
+{
+  typedef mozilla::dom::SVGFilterElement SVGFilterElement;
+  typedef mozilla::gfx::FilterPrimitiveDescription FilterPrimitiveDescription;
+  typedef mozilla::gfx::Point3D Point3D;
+
+public:
+  nsSVGFilterInstance(
+    nsIFrame* aTargetFrame,
+    const gfxRect& aTargetBBox,
+    const nsStyleFilter& aFilter,
+    nsTArray<FilterPrimitiveDescription>& aPrimitiveDescriptions);
+
+  bool IsInitialized() const { return mInitialized; }
+
+  /**
+   * Returns the user specified "filter region", in the filtered element's user
+   * space, after it has been adjusted out (if necessary) so that its edges
+   * coincide with pixel boundaries of the offscreen surface into which the
+   * filtered output would/will be painted.
+   */
+  gfxRect GetFilterRegion() const { return mFilterRegion; }
+
+  float GetPrimitiveNumber(uint8_t aCtxType, const nsSVGNumber2 *aNumber) const;
+  float GetPrimitiveNumber(uint8_t aCtxType,
+                           const nsSVGNumberPair *aNumberPair,
+                           nsSVGNumberPair::PairIndex aIndex) const;
+
+  /**
+   * Converts a userSpaceOnUse/objectBoundingBoxUnits unitless point
+   * into filter space, depending on the value of mPrimitiveUnits. (For
+   * objectBoundingBoxUnits, the bounding box offset is applied to the point.)
+   */
+  Point3D ConvertLocation(const Point3D& aPoint) const;
+
+  gfxRect UserSpaceToFilterSpace(const gfxRect& aUserSpace) const;
+  gfxRect FilterSpaceToUserSpace(const gfxRect& aFilterSpace) const;
+
+private:
+  /**
+   * Scales a numeric filter primitive length in the X, Y or "XY" directions
+   * into a length in filter space (no offset is applied).
+   */
+  float GetPrimitiveNumber(uint8_t aCtxType, float aValue) const;
+
+  nsSVGFilterFrame* GetFilterFrame(nsIURI* url);
+  gfxRect ComputeFilterRegion();
+  nsIntRect ComputeFilterSpaceBounds();
+  gfxRect ScaleUserSpaceToFilterSpace(const gfxRect& aUserSpace) const;
+  gfxRect ScaleFilterSpaceToUserSpace(const gfxRect& aFilterSpace) const;
+
+  nsIFrame* mTargetFrame;
+  gfxRect mTargetBBox;
+  nsStyleFilter mFilter;
+  nsTArray<FilterPrimitiveDescription>& mPrimitiveDescriptions;
+  bool mInitialized;
+
+  nsSVGFilterFrame* mFilterFrame;
+  const SVGFilterElement* mFilterElement;
+  uint16_t mPrimitiveUnits;
+  gfxMatrix mCanvasTransform;
+  gfxRect mFilterRegion;
+  nsIntRect mFilterSpaceBounds;
 };
 
 #endif

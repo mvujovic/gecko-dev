@@ -14,8 +14,10 @@
 
 typedef nsSVGElement SVGFilterElementBase;
 
-class nsSVGFilterFrame;
+// TODO(mvujovic): Remove nsFilterInstance from here.
 class nsFilterInstance;
+class nsSVGFilterFrame;
+class nsSVGFilterInstance;
 
 nsresult NS_NewSVGFilterElement(nsIContent **aResult,
                                 already_AddRefed<nsINodeInfo> aNodeInfo);
@@ -26,8 +28,10 @@ class SVGAnimatedLength;
 
 class SVGFilterElement : public SVGFilterElementBase
 {
-  friend class ::nsSVGFilterFrame;
+  // TODO(mvujovic): Remove nsFilterInstance as a friend.
   friend class ::nsFilterInstance;
+  friend class ::nsSVGFilterFrame;
+  friend class ::nsSVGFilterInstance;
 
 protected:
   friend nsresult (::NS_NewSVGFilterElement(nsIContent **aResult,

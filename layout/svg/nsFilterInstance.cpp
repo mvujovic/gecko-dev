@@ -41,6 +41,12 @@ ToGfxRect(const nsIntRect& rect)
   return gfxRect(rect.X(), rect.Y(), rect.Width(), rect.Height());
 }
 
+static gfxRect
+ToGfxRect(const IntRect& rect)
+{
+  return gfxRect(rect.X(), rect.Y(), rect.Width(), rect.Height());
+}
+
 // TODO(mvujovic): Actually use INT_MAX, INT_MIN.
 static IntRect
 InfiniteIntRect()
@@ -840,10 +846,11 @@ nsSVGFilterInstance::ConvertLocation(const Point3D& aPoint) const
   val[3].Init(SVGContentUtils::Y, 0xff, 0,
               nsIDOMSVGLength::SVG_LENGTHTYPE_NUMBER);
 
-  gfxRect feArea = nsSVGUtils::GetRelativeRect(
+  gfxRect userSpaceArea = nsSVGUtils::GetRelativeRect(
     mPrimitiveUnits, val, mTargetBBox, mTargetFrame);
-  gfxRect r = UserSpaceToFilterSpace(feArea);
-  return Point3D(r.x, r.y, GetPrimitiveNumber(SVGContentUtils::XY, aPoint.z));
+  IntRect filterSpaceArea = UserSpaceToFilterSpace(userSpaceArea);
+  return Point3D(filterSpaceArea.X(), filterSpaceArea.Y(),
+    GetPrimitiveNumber(SVGContentUtils::XY, aPoint.z));
 }
 
 nsSVGFilterFrame*
@@ -882,7 +889,7 @@ nsSVGFilterInstance::GetFilterFrame(nsIURI* url)
 // bool overflow;
 // gfxSize filterRes = 
 //   nsSVGUtils::ConvertToSurfaceSize(scaledSVGFilterRegion.Size(), &overflow);
-// return nsIntRect(0, 0, filterRes.width, filterRes.height);
+// return IntRect(0, 0, filterRes.width, filterRes.height);
 
 // Compute the user space bounds (aka filter region).
 gfxRect
@@ -924,14 +931,14 @@ nsSVGFilterInstance::ComputeUserSpaceBounds()
 gfxRect nsSVGFilterInstance::RoundOutUserSpace(const gfxRect& aUserSpace) const
 {
   bool roundOut = true;
-  nsIntRect roundedIntermediateSpaceBounds =
+  IntRect roundedIntermediateSpaceBounds =
     UserSpaceToIntermediateSpace(aUserSpace, roundOut);
   gfxRect roundedUserSpaceBounds =
     IntermediateSpaceToUserSpace(roundedIntermediateSpaceBounds);
   return roundedUserSpaceBounds;
 }
 
-nsIntRect
+IntRect
 nsSVGFilterInstance::UserSpaceToIntermediateSpace(
   const gfxRect& aUserSpace, bool aRoundOut) const
 {
@@ -943,12 +950,12 @@ nsSVGFilterInstance::UserSpaceToIntermediateSpace(
   filterSpace.Scale(scale.width, scale.height);
   if (aRoundOut)
     filterSpace.RoundOut();
-  return ToNsIntRect(filterSpace);
+  return ToIntRect(filterSpace);
 }
 
 gfxRect
 nsSVGFilterInstance::IntermediateSpaceToUserSpace(
-  const nsIntRect& aIntermediateSpace) const
+  const IntRect& aIntermediateSpace) const
 {
   NS_ASSERTION(!mCanvasTransform.IsSingular(),
     "we shouldn't be doing anything if canvas transform is singular");
@@ -959,15 +966,14 @@ nsSVGFilterInstance::IntermediateSpaceToUserSpace(
   return userSpace;
 }
 
-nsIntRect
+IntRect
 nsSVGFilterInstance::UserSpaceToFilterSpace(const gfxRect& aUserSpace) const
 {
-  return ToNsIntRect(
-    UserSpaceToIntermediateSpace(aUserSpace - mUserSpaceBounds.TopLeft()));
+  return UserSpaceToIntermediateSpace(aUserSpace - mUserSpaceBounds.TopLeft());
 }
 
 gfxRect
-nsSVGFilterInstance::FilterSpaceToUserSpace(const nsIntRect& aFilterSpace) const
+nsSVGFilterInstance::FilterSpaceToUserSpace(const IntRect& aFilterSpace) const
 {
   return IntermediateSpaceToUserSpace(aFilterSpace) + mUserSpaceBounds.TopLeft();
 }
@@ -1110,13 +1116,12 @@ nsSVGFilterInstance::ComputeIntermediateSpacePrimitiveSubregion(
       int32_t inputIndex = aInputIndices[i];
       IntRect inputSubregion = inputIndex >= 0 ?
         mPrimitiveDescriptions[inputIndex].PrimitiveSubregion() :
-        ToIntRect(mIntermediateSpaceBounds);
+        mIntermediateSpaceBounds;
 
-      defaultSubregion =
-        defaultSubregion.Union(inputSubregion);
+      defaultSubregion = defaultSubregion.Union(inputSubregion);
     }
   } else {
-    defaultSubregion = ToIntRect(mIntermediateSpaceBounds);
+    defaultSubregion = mIntermediateSpaceBounds;
   }
 
   uint16_t primitiveUnits =
@@ -1132,7 +1137,7 @@ nsSVGFilterInstance::ComputeIntermediateSpacePrimitiveSubregion(
   // in the subregion.
   bool roundOut = true;
   IntRect intermediateSpaceSubregion = 
-    ToIntRect(UserSpaceToIntermediateSpace(userSpaceSubregion, roundOut));
+    UserSpaceToIntermediateSpace(userSpaceSubregion, roundOut);
 
   // TODO(mvujovic): This is in filter space, not intermediate space.
   if (!fE->mLengthAttributes[nsSVGFE::ATTR_X].IsExplicitlySet())
@@ -1158,7 +1163,7 @@ nsSVGFilterInstance::ClipLastPrimitiveDescriptionByFilterRegion()
     mPrimitiveDescriptions[numPrimitiveDescriptions - 1];
   IntRect primitiveSubregion = descr.PrimitiveSubregion();
   primitiveSubregion =
-    primitiveSubregion.Intersect(ToIntRect(mIntermediateSpaceBounds));
+    primitiveSubregion.Intersect(mIntermediateSpaceBounds);
   descr.SetPrimitiveSubregion(primitiveSubregion);
 }
 

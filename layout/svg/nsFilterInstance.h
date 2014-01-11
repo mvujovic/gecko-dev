@@ -359,10 +359,10 @@ public:
    */
   Point3D ConvertLocation(const Point3D& aPoint) const;
 
-  nsIntRect UserSpaceToFilterSpace(
+  IntRect UserSpaceToFilterSpace(
     const gfxRect& aUserSpace) const;
   gfxRect FilterSpaceToUserSpace(
-    const nsIntRect& aFilterSpace) const;
+    const IntRect& aFilterSpace) const;
 
 private:
   /**
@@ -373,10 +373,10 @@ private:
 
   nsSVGFilterFrame* GetFilterFrame(nsIURI* url);
   gfxRect ComputeUserSpaceBounds();
-  nsIntRect UserSpaceToIntermediateSpace(
+  IntRect UserSpaceToIntermediateSpace(
     const gfxRect& aUserSpace, bool aRoundOut = false) const;
   gfxRect IntermediateSpaceToUserSpace(
-    const nsIntRect& aIntermediateSpace) const;
+    const IntRect& aIntermediateSpace) const;
   gfxRect RoundOutUserSpace(const gfxRect& aUserSpace) const;
   nsresult BuildPrimitives();
   void GetFilterPrimitiveElements(
@@ -404,8 +404,8 @@ private:
   uint16_t mPrimitiveUnits;
   gfxMatrix mCanvasTransform;
   gfxRect mUserSpaceBounds;
-  nsIntRect mIntermediateSpaceBounds;
-  nsIntRect mFilterSpaceBounds;
+  IntRect mIntermediateSpaceBounds;
+  IntRect mFilterSpaceBounds;
 };
 
 class nsCSSFilterInstance

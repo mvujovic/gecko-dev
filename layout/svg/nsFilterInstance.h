@@ -77,7 +77,7 @@ public:
    * coincide with pixel boundaries of the offscreen surface into which the
    * filtered output would/will be painted.
    */
-  gfxRect GetFilterRegion() const { return mFilterRegion; }
+  gfxRect GetFilterRegion() const { return mUserSpaceBounds; }
 
   /**
    * Returns the size of the user specified "filter region", in filter space.
@@ -281,7 +281,7 @@ private:
 
   gfxMatrix               mFilterSpaceToDeviceSpaceTransform;
   gfxMatrix               mFilterSpaceToFrameSpaceInCSSPxTransform;
-  gfxRect                 mFilterRegion;
+  gfxRect                 mUserSpaceBounds;
   nsIntRect               mFilterSpaceBounds;
 
   /**
@@ -346,7 +346,7 @@ public:
    * coincide with pixel boundaries of the offscreen surface into which the
    * filtered output would/will be painted.
    */
-  gfxRect GetFilterRegion() const { return mFilterRegion; }
+  gfxRect GetFilterRegion() const { return mUserSpaceBounds; }
 
   float GetPrimitiveNumber(uint8_t aCtxType, const nsSVGNumber2 *aNumber) const;
   float GetPrimitiveNumber(uint8_t aCtxType,
@@ -360,8 +360,10 @@ public:
    */
   Point3D ConvertLocation(const Point3D& aPoint) const;
 
-  gfxRect UserSpaceToFilterSpace(const gfxRect& aUserSpace) const;
-  gfxRect FilterSpaceToUserSpace(const gfxRect& aFilterSpace) const;
+  nsIntRect UserSpaceToFilterSpace(
+    const gfxRect& aUserSpace) const;
+  gfxRect FilterSpaceToUserSpace(
+    const nsIntRect& aFilterSpace) const;
 
 private:
   /**
@@ -371,12 +373,13 @@ private:
   float GetPrimitiveNumber(uint8_t aCtxType, float aValue) const;
 
   nsSVGFilterFrame* GetFilterFrame(nsIURI* url);
-  gfxRect ComputeFilterRegion();
-  nsIntRect ComputeInitialFilterSpaceBounds();
-  nsIntRect ComputeFilterSpaceBounds();
-  gfxRect ScaleUserSpaceToFilterSpace(const gfxRect& aUserSpace) const;
-  gfxRect ScaleFilterSpaceToUserSpace(const gfxRect& aFilterSpace) const;
-  nsresult BuildPrimitives();  
+  gfxRect ComputeUserSpaceBounds();
+  nsIntRect UserSpaceToIntermediateSpace(
+    const gfxRect& aUserSpace, bool aRoundOut = false) const;
+  gfxRect IntermediateSpaceToUserSpace(
+    const nsIntRect& aIntermediateSpace) const;
+  gfxRect RoundOutUserSpace(const gfxRect& aUserSpace) const;
+  nsresult BuildPrimitives();
   void GetFilterPrimitiveElements(
     const SVGFilterElement* aFilterElement, 
     nsTArray<nsRefPtr<nsSVGFE> >& aPrimitives);
@@ -385,7 +388,7 @@ private:
     int32_t aCurrentIndex,
     const nsDataHashtable<nsStringHashKey, int32_t>& aImageTable,
     nsTArray<int32_t>& aSourceIndices);
-  IntRect ComputeFilterPrimitiveSubregion(
+  IntRect ComputeIntermediateSpacePrimitiveSubregion(
     nsSVGFE* aPrimitiveElement,
     const nsTArray<int32_t>& aInputIndices);
 
@@ -400,8 +403,8 @@ private:
   const SVGFilterElement* mFilterElement;
   uint16_t mPrimitiveUnits;
   gfxMatrix mCanvasTransform;
-  gfxRect mFilterRegion;
-  nsIntRect mInitialFilterSpaceBounds;
+  gfxRect mUserSpaceBounds;
+  nsIntRect mIntermediateSpaceBounds;
   nsIntRect mFilterSpaceBounds;
 };
 

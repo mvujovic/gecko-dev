@@ -256,7 +256,6 @@ private:
   nsSVGFilterFrame* GetFilterFrame(nsIURI* url);
 
   void TranslatePrimitiveSubregions(IntPoint translation);
-  void ClipPrimitiveSubregions(IntRect clipRect);
   void ComputeOverallFilterMetrics();
 
   void ConvertRectsFromFrameSpaceToFilterSpace(
@@ -391,6 +390,7 @@ private:
   IntRect ComputeIntermediateSpacePrimitiveSubregion(
     nsSVGFE* aPrimitiveElement,
     const nsTArray<int32_t>& aInputIndices);
+  void ClipLastPrimitiveDescriptionByFilterRegion();
 
   nsIFrame* mTargetFrame;
   gfxRect mTargetBBox;

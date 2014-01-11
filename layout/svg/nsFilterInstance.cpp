@@ -324,18 +324,6 @@ nsFilterInstance::TranslatePrimitiveSubregions(IntPoint translation)
 }
 
 void
-nsFilterInstance::ClipPrimitiveSubregions(IntRect clipRect)
-{
-  for (uint32_t i = 0; i < mPrimitiveDescriptions.Length(); i++) {
-    FilterPrimitiveDescription& primitiveDescription = 
-      mPrimitiveDescriptions[i];
-    IntRect primitiveSubregion = primitiveDescription.PrimitiveSubregion();
-    primitiveSubregion = primitiveSubregion.Intersect(clipRect);
-    primitiveDescription.SetPrimitiveSubregion(primitiveSubregion);
-  }
-}
-
-void
 nsFilterInstance::ComputeOverallFilterMetrics()
 {
   // TODO(mvujovic): Follow ComputePostFilterExtents more closely. Check for overflow.
@@ -987,7 +975,7 @@ nsSVGFilterInstance::FilterSpaceToUserSpace(const nsIntRect& aFilterSpace) const
 nsresult
 nsSVGFilterInstance::BuildPrimitives()
 {
-  // TODO(mvujovic): Call ClipPrimitives on previous filter primitives.
+  ClipLastPrimitiveDescriptionByFilterRegion();
 
   // Get the filter primitive elements.
   nsTArray<nsRefPtr<nsSVGFE> > primitiveElements;
@@ -1157,6 +1145,21 @@ nsSVGFilterInstance::ComputeIntermediateSpacePrimitiveSubregion(
     intermediateSpaceSubregion.height = defaultSubregion.Height();
 
   return intermediateSpaceSubregion;
+}
+
+void
+nsSVGFilterInstance::ClipLastPrimitiveDescriptionByFilterRegion()
+{
+  uint32_t numPrimitiveDescriptions = mPrimitiveDescriptions.Length();
+  if (numPrimitiveDescriptions <= 0)
+    return;
+
+  FilterPrimitiveDescription& descr =
+    mPrimitiveDescriptions[numPrimitiveDescriptions - 1];
+  IntRect primitiveSubregion = descr.PrimitiveSubregion();
+  primitiveSubregion =
+    primitiveSubregion.Intersect(ToIntRect(mIntermediateSpaceBounds));
+  descr.SetPrimitiveSubregion(primitiveSubregion);
 }
 
 

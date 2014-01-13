@@ -213,9 +213,12 @@ private:
     const nsRect *aPreFilterDirtyRect,
     const nsRect *aPreFilterVisualOverflowRectOverride);
 
-  gfxRect UserSpaceToInitialFilterSpace(const gfxRect& aUserSpace);
-  gfxRect InitialFilterSpaceToUserSpace(const gfxRect& aInitialFilterSpace);
+  IntRect UserSpaceToIntermediateSpace(
+    const gfxRect& aUserSpace, bool aRoundOut = false) const;
+  gfxRect IntermediateSpaceToUserSpace(
+    const IntRect& aIntermediateSpace) const;
 
+  static nsIntRect ToNsIntRect(const IntRect& rect);
   static nsIntRect ToNsIntRect(const gfxRect& rect);
   static IntRect ToIntRect(const gfxRect& rect);
   static gfxRect ToGfxRect(const nsIntRect& rect);

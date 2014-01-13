@@ -26,6 +26,12 @@ using namespace mozilla::dom;
 using namespace mozilla::gfx;
 
 nsIntRect
+nsFilterInstance::ToNsIntRect(const IntRect& rect)
+{
+  return nsIntRect(rect.X(), rect.Y(), rect.Width(), rect.Height());
+}
+
+nsIntRect
 nsFilterInstance::ToNsIntRect(const gfxRect& rect)
 {
   return nsIntRect(rect.X(), rect.Y(), rect.Width(), rect.Height());
@@ -170,26 +176,29 @@ nsFilterInstance::nsFilterInstance(
   mInitialized = true;
 }
 
-gfxRect
-nsFilterInstance::UserSpaceToInitialFilterSpace(const gfxRect& aUserSpace)
+IntRect
+nsFilterInstance::UserSpaceToIntermediateSpace(
+  const gfxRect& aUserSpace, bool aRoundOut) const
 {
   NS_ASSERTION(!mCanvasTransform.IsSingular(),
     "we shouldn't be doing anything if canvas transform is singular");
 
-  gfxRect initialFilterSpace = aUserSpace;
+  gfxRect filterSpace = aUserSpace;
   gfxSize scale = mCanvasTransform.ScaleFactors(true);
-  initialFilterSpace.Scale(scale.width, scale.height);
-  return initialFilterSpace;
+  filterSpace.Scale(scale.width, scale.height);
+  if (aRoundOut)
+    filterSpace.RoundOut();
+  return ToIntRect(filterSpace);
 }
 
 gfxRect
-nsFilterInstance::InitialFilterSpaceToUserSpace(
-  const gfxRect& aInitialFilterSpace)
+nsFilterInstance::IntermediateSpaceToUserSpace(
+  const IntRect& aIntermediateSpace) const
 {
   NS_ASSERTION(!mCanvasTransform.IsSingular(),
     "we shouldn't be doing anything if canvas transform is singular");
 
-  gfxRect userSpace = aInitialFilterSpace;
+  gfxRect userSpace = ToGfxRect(aIntermediateSpace);
   gfxSize scale = mCanvasTransform.ScaleFactors(true);
   userSpace.Scale(1.0 / scale.width, 1.0 / scale.height);
   return userSpace;
@@ -271,17 +280,17 @@ nsFilterInstance::ComputeOverallFilterMetrics()
 {
   // TODO(mvujovic): Follow ComputePostFilterExtents more closely. Check for overflow.
 
-  // Compute initial filter space bounds.
+  // Compute intermediate space bounds.
   FilterDescription filterDescription(mPrimitiveDescriptions,
                                       InfiniteIntRect());
   nsIntRect sourceBounds =
-    ToNsIntRect(UserSpaceToInitialFilterSpace(mTargetBBox));
+    ToNsIntRect(UserSpaceToIntermediateSpace(mTargetBBox));
   nsIntRegion postFilterExtents =
     FilterSupport::ComputePostFilterExtents(filterDescription, sourceBounds);
   mFilterSpaceBounds = postFilterExtents.GetBounds();
 
   // Compute filter region.
-  mUserSpaceBounds = InitialFilterSpaceToUserSpace(mFilterSpaceBounds);
+  mUserSpaceBounds = IntermediateSpaceToUserSpace(ToIntRect(mFilterSpaceBounds));
 
   // Compute final filter space bounds.
   nsIntPoint filterSpaceOffset = mFilterSpaceBounds.TopLeft();

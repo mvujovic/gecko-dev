@@ -109,11 +109,15 @@ private:
 
   nsSVGFilterFrame* mFilterFrame;
   const SVGFilterElement* mFilterElement;
-  uint16_t mPrimitiveUnits;
   gfxMatrix mCanvasTransform;
   gfxRect mUserSpaceBounds;
   IntRect mIntermediateSpaceBounds;
   IntRect mFilterSpaceBounds;
+
+  /**
+   * The 'primitiveUnits' attribute value (objectBoundingBox or userSpaceOnUse).
+   */
+  uint16_t mPrimitiveUnits;
 };
 
 #endif

@@ -193,7 +193,6 @@ private:
    */
   nsresult BuildPrimitives();
   nsresult BuildPrimitivesForFilter(const nsStyleFilter& filter);
-  nsresult BuildPrimitivesForSVGFilter(const nsStyleFilter& filter);
 
   /**
    * Computes the filter space bounds of the areas that we actually *need* from
@@ -201,12 +200,6 @@ private:
    * This sets mNeededBounds on the corresponding SourceInfo structs.
    */
    void ComputeNeededBoxes();
-
-  /**
-   * Scales a numeric filter primitive length in the X, Y or "XY" directions
-   * into a length in filter space (no offset is applied).
-   */
-  float GetPrimitiveNumber(uint8_t aCtxType, float aValue) const;
 
   gfxRect UserSpaceToFilterSpace(const gfxRect& aUserSpace) const;
 
@@ -266,11 +259,6 @@ private:
    * unfortunately.)
    */
   nsIntRect               mPreFilterDirtyRect;
-
-  /**
-   * The 'primitiveUnits' attribute value (objectBoundingBox or userSpaceOnUse).
-   */
-  uint16_t                mPrimitiveUnits;
 
   SourceInfo              mSourceGraphic;
   SourceInfo              mFillPaint;

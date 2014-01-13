@@ -23,15 +23,8 @@
 #include "mozilla/gfx/2D.h"
 
 class gfxASurface;
-class gfxImageSurface;
 class nsIFrame;
 class nsSVGFilterPaintCallback;
-
-namespace mozilla {
-namespace dom {
-class SVGFilterElement;
-}
-}
 
 /**
  * This class performs all filter processing.
@@ -125,23 +118,6 @@ public:
    */
   nsresult ComputeSourceNeededRect(nsRect* aDirty);
 
-  float GetPrimitiveNumber(uint8_t aCtxType, const nsSVGNumber2 *aNumber) const
-  {
-    return GetPrimitiveNumber(aCtxType, aNumber->GetAnimValue());
-  }
-  float GetPrimitiveNumber(uint8_t aCtxType, const nsSVGNumberPair *aNumberPair,
-                           nsSVGNumberPair::PairIndex aIndex) const
-  {
-    return GetPrimitiveNumber(aCtxType, aNumberPair->GetAnimValue(aIndex));
-  }
-
-  /**
-   * Converts a userSpaceOnUse/objectBoundingBoxUnits unitless point
-   * into filter space, depending on the value of mPrimitiveUnits. (For
-   * objectBoundingBoxUnits, the bounding box offset is applied to the point.)
-   */
-  Point3D ConvertLocation(const Point3D& aPoint) const;
-
   /**
    * Returns the transform from the filtered element's user space to filter
    * space. This will be a simple translation and/or scale.
@@ -227,15 +203,6 @@ private:
    void ComputeNeededBoxes();
 
   /**
-   * Computes the filter primitive subregion for the given primitive.
-   */
-  IntRect ComputeFilterPrimitiveSubregion(
-    nsSVGFE* aFilterPrimitiveElement,
-    nsSVGFilterFrame* aFilterFrame,
-    const nsTArray<int32_t>& aInputIndices,
-    const nsIntRect& filterSpaceBounds);
-
-  /**
    * Scales a numeric filter primitive length in the X, Y or "XY" directions
    * into a length in filter space (no offset is applied).
    */
@@ -244,16 +211,6 @@ private:
   gfxRect UserSpaceToFilterSpace(const gfxRect& aUserSpace) const;
 
   nsRect TransformFilterSpaceToFrameSpace(const nsIntRect& aRect) const;
-
-  gfxRect GetSVGFilterRegionInTargetUserSpace(
-    const mozilla::dom::SVGFilterElement* aFilterElement,
-    nsSVGFilterFrame* aFilterFrame);
-
-  void GetFilterPrimitiveElements(
-    const mozilla::dom::SVGFilterElement* aFilterElement, 
-    nsTArray<nsRefPtr<nsSVGFE> >& aPrimitives);
-
-  nsSVGFilterFrame* GetFilterFrame(nsIURI* url);
 
   void TranslatePrimitiveSubregions(IntPoint translation);
   void ComputeOverallFilterMetrics();

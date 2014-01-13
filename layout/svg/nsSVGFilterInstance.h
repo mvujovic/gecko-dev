@@ -11,7 +11,6 @@
 #include "nsSVGNumberPair.h"
 #include "nsTArray.h"
 #include "nsIFrame.h"
-#include "mozilla/gfx/2D.h"
 
 class nsIFrame;
 class nsSVGFE;

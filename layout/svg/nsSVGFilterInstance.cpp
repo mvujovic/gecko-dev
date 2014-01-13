@@ -7,13 +7,12 @@
 #include "nsSVGFilterInstance.h"
 
 // Keep others in (case-insensitive) order:
-#include "gfxPlatform.h"
-#include "gfxUtils.h"
 #include "nsISVGChildFrame.h"
-#include "nsRenderingContext.h"
 #include "mozilla/dom/SVGFilterElement.h"
 #include "nsReferencedElement.h"
-#include "nsSVGFilterPaintCallback.h"
+#include "nsSVGFilterFrame.h"
+#include "nsSVGFilters.h"
+#include "nsSVGNumber2.h"
 #include "nsSVGUtils.h"
 #include "SVGContentUtils.h"
 #include "FilterSupport.h"

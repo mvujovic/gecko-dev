@@ -7,27 +7,21 @@
 #define __NS_SVGFILTERINSTANCE_H__
 
 #include "gfxMatrix.h"
-#include "gfxPoint.h"
 #include "gfxRect.h"
-#include "nsCOMPtr.h"
-#include "nsHashKeys.h"
-#include "nsPoint.h"
-#include "nsRect.h"
-#include "nsSize.h"
-#include "nsSVGFilterFrame.h"
-#include "nsSVGFilters.h"
-#include "nsSVGNumber2.h"
 #include "nsSVGNumberPair.h"
 #include "nsTArray.h"
 #include "nsIFrame.h"
 #include "mozilla/gfx/2D.h"
 
-class gfxASurface;
-class gfxImageSurface;
 class nsIFrame;
-class nsSVGFilterPaintCallback;
+class nsSVGFE;
+class nsSVGFilterFrame;
+class nsSVGNumber2;
 
 namespace mozilla {
+namespace gfx {
+class FilterPrimitiveDescription;
+}
 namespace dom {
 class SVGFilterElement;
 }

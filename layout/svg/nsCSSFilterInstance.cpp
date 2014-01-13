@@ -7,17 +7,7 @@
 #include "nsCSSFilterInstance.h"
 
 // Keep others in (case-insensitive) order:
-#include "gfxPlatform.h"
-#include "gfxUtils.h"
-#include "nsISVGChildFrame.h"
-#include "nsRenderingContext.h"
-#include "mozilla/dom/SVGFilterElement.h"
-#include "nsReferencedElement.h"
-#include "nsSVGFilterPaintCallback.h"
-#include "nsSVGUtils.h"
-#include "SVGContentUtils.h"
 #include "FilterSupport.h"
-#include "gfx2DGlue.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;

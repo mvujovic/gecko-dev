@@ -5,7 +5,7 @@
 
 #include "mozilla/dom/SVGFEPointLightElement.h"
 #include "mozilla/dom/SVGFEPointLightElementBinding.h"
-#include "nsFilterInstance.h"
+#include "nsSVGFilterInstance.h"
 
 NS_IMPL_NS_NEW_NAMESPACED_SVG_ELEMENT(FEPointLight)
 

@@ -414,8 +414,8 @@ nsSVGUtils::GetPostFilterVisualOverflowRect(nsIFrame *aFrame,
              !(aFrame->GetStateBits() & NS_FRAME_IS_NONDISPLAY),
              "Non-display SVG do not maintain visual overflow rects");
 
-  nsFilterInstance instance(aFrame, aFrame->StyleSVGReset()->mFilters, nullptr, nullptr,
-                               &aPreFilterRect, &aPreFilterRect, nullptr);
+  nsFilterInstance instance(aFrame, aFrame->StyleSVGReset()->mFilters, nullptr,
+    nullptr, &aPreFilterRect, &aPreFilterRect, nullptr);
   if (!instance.IsInitialized()) {
     return nsRect();
   }
@@ -882,9 +882,8 @@ nsSVGUtils::PaintFrameWithEffects(nsRenderingContext *aContext,
     SVGPaintCallback paintCallback;
 
     // PaintFilteredFrame
-    nsFilterInstance instance(aFrame, aFrame->StyleSVGReset()->mFilters, &paintCallback,
-                                 dirtyRect, nullptr, nullptr, nullptr,
-                                 aTransformRoot);
+    nsFilterInstance instance(aFrame, aFrame->StyleSVGReset()->mFilters,
+      &paintCallback, dirtyRect, nullptr, nullptr, nullptr, aTransformRoot);
     if (instance.IsInitialized()) {
       instance.Render(aContext->ThebesContext());
     }

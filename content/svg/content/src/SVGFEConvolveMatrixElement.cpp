@@ -7,7 +7,7 @@
 #include "mozilla/dom/SVGFEConvolveMatrixElementBinding.h"
 #include "DOMSVGAnimatedNumberList.h"
 #include "nsSVGUtils.h"
-#include "nsFilterInstance.h"
+#include "nsSVGFilterInstance.h"
 
 NS_IMPL_NS_NEW_NAMESPACED_SVG_ELEMENT(FEConvolveMatrix)
 

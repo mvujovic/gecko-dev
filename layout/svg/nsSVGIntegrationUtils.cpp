@@ -278,8 +278,8 @@ nsRect
              !(aFrame->GetStateBits() & NS_FRAME_IS_NONDISPLAY),
              "Non-display SVG do not maintain visual overflow rects");
 
-  nsFilterInstance instance(aFrame, aFrame->StyleSVGReset()->mFilters, nullptr, nullptr, nullptr,
-                               nullptr, &overrideBBox);
+  nsFilterInstance instance(aFrame, aFrame->StyleSVGReset()->mFilters,
+    nullptr, nullptr, nullptr, nullptr, &overrideBBox);
   if (!instance.IsInitialized()) {
     return nsRect();
   }
@@ -342,8 +342,8 @@ nsSVGIntegrationUtils::AdjustInvalidAreaForSVGEffects(nsIFrame* aFrame,
     return nsIntRect();
   }
 
-  nsFilterInstance instance(aFrame, aFrame->StyleSVGReset()->mFilters, nullptr, nullptr,
-                               &preEffectsRect, nullptr);
+  nsFilterInstance instance(aFrame, aFrame->StyleSVGReset()->mFilters, nullptr,
+    nullptr, &preEffectsRect, nullptr);
   if (!instance.IsInitialized()) {
     return nsIntRect();
   }
@@ -378,8 +378,8 @@ nsSVGIntegrationUtils::GetRequiredSourceForInvalidArea(nsIFrame* aFrame,
   nsRect postEffectsRect = aDirtyRect + toUserSpace;
 
   // GetPreFilterNeededArea
-  nsFilterInstance instance(firstFrame, firstFrame->StyleSVGReset()->mFilters, nullptr,
-                               &postEffectsRect, nullptr, nullptr);
+  nsFilterInstance instance(firstFrame, firstFrame->StyleSVGReset()->mFilters,
+    nullptr, &postEffectsRect, nullptr, nullptr);
   if (!instance.IsInitialized()) {
     return nsRect();
   }
@@ -558,9 +558,8 @@ nsSVGIntegrationUtils::PaintFramesWithEffects(nsRenderingContext* aCtx,
     nsRect dirtyRect = aDirtyRect - offset;
 
     // PaintFilteredFrame
-    nsFilterInstance instance(aFrame, aFrame->StyleSVGReset()->mFilters, &callback,
-                                 &dirtyRect, nullptr, nullptr, nullptr,
-                                 nullptr);
+    nsFilterInstance instance(aFrame, aFrame->StyleSVGReset()->mFilters,
+      &callback, &dirtyRect, nullptr, nullptr, nullptr, nullptr);
     if (instance.IsInitialized()) {
       instance.Render(aCtx->ThebesContext());
     }

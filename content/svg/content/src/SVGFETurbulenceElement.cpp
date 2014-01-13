@@ -5,7 +5,7 @@
 
 #include "mozilla/dom/SVGFETurbulenceElement.h"
 #include "mozilla/dom/SVGFETurbulenceElementBinding.h"
-#include "nsFilterInstance.h"
+#include "nsSVGFilterInstance.h"
 #include "nsSVGUtils.h"
 
 NS_IMPL_NS_NEW_NAMESPACED_SVG_ELEMENT(FETurbulence)

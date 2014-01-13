@@ -16,8 +16,6 @@
 #include "FilterSupport.h"
 #include "gfxASurface.h"
 
-  // TODO(mvujovic): Remove nsFilterInstance from here.
-class nsFilterInstance;
 class nsSVGFilterInstance;
 class nsSVGFilterResource;
 class nsSVGNumberPair;
@@ -44,8 +42,6 @@ typedef nsSVGElement nsSVGFEBase;
  */
 class nsSVGFE : public nsSVGFEBase
 {
-  // TODO(mvujovic): Remove nsFilterInstance from here.
-  friend class nsFilterInstance;
   friend class nsSVGFilterInstance;
 
 protected:

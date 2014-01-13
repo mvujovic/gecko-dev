@@ -13,7 +13,7 @@
 #include "nsSVGIntegerPair.h"
 #include "nsSVGBoolean.h"
 #include "nsCOMPtr.h"
-#include "nsFilterInstance.h"
+#include "nsSVGFilterInstance.h"
 #include "nsSVGEnum.h"
 #include "SVGNumberList.h"
 #include "SVGAnimatedNumberList.h"

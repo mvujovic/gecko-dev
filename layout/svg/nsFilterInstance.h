@@ -3,8 +3,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef __NS_SVGFILTERINSTANCE_H__
-#define __NS_SVGFILTERINSTANCE_H__
+#ifndef __NS_FILTERINSTANCE_H__
+#define __NS_FILTERINSTANCE_H__
 
 #include "gfxMatrix.h"
 #include "gfxPoint.h"
@@ -266,6 +266,12 @@ private:
   gfxRect UserSpaceToInitialFilterSpace(const gfxRect& aUserSpace);
   gfxRect InitialFilterSpaceToUserSpace(const gfxRect& aInitialFilterSpace);
 
+  static nsIntRect ToNsIntRect(const gfxRect& rect);
+  static IntRect ToIntRect(const gfxRect& rect);
+  static gfxRect ToGfxRect(const nsIntRect& rect);
+  static gfxRect ToGfxRect(const IntRect& rect);
+  static IntRect InfiniteIntRect();
+
   /**
    * The frame for the element that is currently being filtered.
    */
@@ -318,113 +324,6 @@ private:
 
   nsTArray<nsStyleFilter> mFilters;
   gfxMatrix mCanvasTransform;
-  bool mInitialized;
-};
-
-class nsSVGFilterInstance
-{
-  typedef mozilla::dom::SVGFilterElement SVGFilterElement;
-  typedef mozilla::gfx::FilterPrimitiveDescription FilterPrimitiveDescription;
-  typedef mozilla::gfx::IntRect IntRect;
-  typedef mozilla::gfx::Point3D Point3D;
-  typedef mozilla::gfx::SourceSurface SourceSurface;
-
-public:
-  nsSVGFilterInstance(
-    nsIFrame* aTargetFrame,
-    const gfxRect& aTargetBBox,
-    const nsStyleFilter& aFilter,
-    nsTArray<FilterPrimitiveDescription>& aPrimitiveDescriptions,
-    nsTArray<mozilla::RefPtr<SourceSurface>>& aInputImages);
-
-  bool IsInitialized() const { return mInitialized; }
-
-  /**
-   * Returns the user specified "filter region", in the filtered element's user
-   * space, after it has been adjusted out (if necessary) so that its edges
-   * coincide with pixel boundaries of the offscreen surface into which the
-   * filtered output would/will be painted.
-   */
-  gfxRect GetFilterRegion() const { return mUserSpaceBounds; }
-
-  float GetPrimitiveNumber(uint8_t aCtxType, const nsSVGNumber2 *aNumber) const;
-  float GetPrimitiveNumber(uint8_t aCtxType,
-                           const nsSVGNumberPair *aNumberPair,
-                           nsSVGNumberPair::PairIndex aIndex) const;
-
-  /**
-   * Converts a userSpaceOnUse/objectBoundingBoxUnits unitless point
-   * into filter space, depending on the value of mPrimitiveUnits. (For
-   * objectBoundingBoxUnits, the bounding box offset is applied to the point.)
-   */
-  Point3D ConvertLocation(const Point3D& aPoint) const;
-
-  IntRect UserSpaceToFilterSpace(
-    const gfxRect& aUserSpace) const;
-  gfxRect FilterSpaceToUserSpace(
-    const IntRect& aFilterSpace) const;
-
-private:
-  /**
-   * Scales a numeric filter primitive length in the X, Y or "XY" directions
-   * into a length in filter space (no offset is applied).
-   */
-  float GetPrimitiveNumber(uint8_t aCtxType, float aValue) const;
-
-  nsSVGFilterFrame* GetFilterFrame(nsIURI* url);
-  gfxRect ComputeUserSpaceBounds();
-  IntRect UserSpaceToIntermediateSpace(
-    const gfxRect& aUserSpace, bool aRoundOut = false) const;
-  gfxRect IntermediateSpaceToUserSpace(
-    const IntRect& aIntermediateSpace) const;
-  gfxRect RoundOutUserSpace(const gfxRect& aUserSpace) const;
-  nsresult BuildPrimitives();
-  void GetFilterPrimitiveElements(
-    const SVGFilterElement* aFilterElement, 
-    nsTArray<nsRefPtr<nsSVGFE> >& aPrimitives);
-  static nsresult GetSourceIndices(
-    nsSVGFE* aPrimitiveElement,
-    int32_t aCurrentIndex,
-    const nsDataHashtable<nsStringHashKey, int32_t>& aImageTable,
-    nsTArray<int32_t>& aSourceIndices);
-  IntRect ComputeIntermediateSpacePrimitiveSubregion(
-    nsSVGFE* aPrimitiveElement,
-    const nsTArray<int32_t>& aInputIndices);
-  void ClipLastPrimitiveDescriptionByFilterRegion();
-
-  nsIFrame* mTargetFrame;
-  gfxRect mTargetBBox;
-  nsStyleFilter mFilter;
-  nsTArray<FilterPrimitiveDescription>& mPrimitiveDescriptions;
-  nsTArray<mozilla::RefPtr<SourceSurface>>& mInputImages;
-  bool mInitialized;
-
-  nsSVGFilterFrame* mFilterFrame;
-  const SVGFilterElement* mFilterElement;
-  uint16_t mPrimitiveUnits;
-  gfxMatrix mCanvasTransform;
-  gfxRect mUserSpaceBounds;
-  IntRect mIntermediateSpaceBounds;
-  IntRect mFilterSpaceBounds;
-};
-
-class nsCSSFilterInstance
-{
-typedef mozilla::gfx::FilterPrimitiveDescription FilterPrimitiveDescription;
-
-public:
-  nsCSSFilterInstance(
-    const nsStyleFilter& aFilter,
-    nsTArray<FilterPrimitiveDescription>& aPrimitiveDescriptions);
-
-  bool IsInitialized() const { return mInitialized; }
-
-private:
-  nsresult BuildPrimitives();
-  nsresult BuildPrimitivesForBlur();
-
-  nsStyleFilter mFilter;
-  nsTArray<FilterPrimitiveDescription>& mPrimitiveDescriptions;
   bool mInitialized;
 };
 

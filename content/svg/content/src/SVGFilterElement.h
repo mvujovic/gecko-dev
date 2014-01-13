@@ -14,8 +14,6 @@
 
 typedef nsSVGElement SVGFilterElementBase;
 
-// TODO(mvujovic): Remove nsFilterInstance from here.
-class nsFilterInstance;
 class nsSVGFilterFrame;
 class nsSVGFilterInstance;
 
@@ -28,8 +26,6 @@ class SVGAnimatedLength;
 
 class SVGFilterElement : public SVGFilterElementBase
 {
-  // TODO(mvujovic): Remove nsFilterInstance as a friend.
-  friend class ::nsFilterInstance;
   friend class ::nsSVGFilterFrame;
   friend class ::nsSVGFilterInstance;
 

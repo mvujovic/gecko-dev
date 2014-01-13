@@ -5,7 +5,7 @@
 
 #include "mozilla/dom/SVGFEGaussianBlurElement.h"
 #include "mozilla/dom/SVGFEGaussianBlurElementBinding.h"
-#include "nsFilterInstance.h"
+#include "nsSVGFilterInstance.h"
 #include "nsSVGUtils.h"
 
 NS_IMPL_NS_NEW_NAMESPACED_SVG_ELEMENT(FEGaussianBlur)

@@ -230,13 +230,6 @@ nsFilterInstance::FilterSpaceToUserSpace(const nsIntRect& aFilterSpace) const
          mUserSpaceBounds.TopLeft();
 }
 
-gfxPoint
-nsFilterInstance::FilterSpaceToUserSpace(const gfxPoint& aPt) const
-{
-  return gfxPoint(aPt.x * mUserSpaceBounds.Width() / mFilterSpaceBounds.width + mUserSpaceBounds.X(),
-                  aPt.y * mUserSpaceBounds.Height() / mFilterSpaceBounds.height + mUserSpaceBounds.Y());
-}
-
 nsresult
 nsFilterInstance::BuildPrimitives()
 {
@@ -315,11 +308,20 @@ nsFilterInstance::ComputeOverallFilterMetrics()
   if (mPaintCallback) {
     mFilterSpaceToDeviceSpaceTransform = filterToUserSpace *
       nsSVGUtils::GetCanvasTM(mTargetFrame, nsISVGChildFrame::FOR_PAINTING);
+
+    // Compute the inverse transform.
+    mDeviceSpaceToFilterSpaceTransform = mFilterSpaceToDeviceSpaceTransform;
+    mDeviceSpaceToFilterSpaceTransform.Invert();
   }
 
   // Compute filter space to frame space transform.
   mFilterSpaceToFrameSpaceInCSSPxTransform =
     filterToUserSpace * GetUserToFrameSpaceInCSSPxTransform(mTargetFrame);
+
+  // Compute the inverse transform.
+  mFrameSpaceInCSSPxToFilterSpaceTransform =
+    mFilterSpaceToFrameSpaceInCSSPxTransform;
+  mFrameSpaceInCSSPxToFilterSpaceTransform.Invert();
 }
 
 void
@@ -328,32 +330,26 @@ nsFilterInstance::ConvertRectsFromFrameSpaceToFilterSpace(
   const nsRect *aPreFilterDirtyRect,
   const nsRect *aPreFilterVisualOverflowRectOverride)
 {
-  // Compute frame space to filter space transform.
-  // Note that filterToFrameSpaceInCSSPx is always invertible.
-  gfxMatrix frameSpaceInCSSPxToFilterSpace =
-    mFilterSpaceToFrameSpaceInCSSPxTransform;
-  frameSpaceInCSSPxToFilterSpace.Invert();
-
   int32_t appUnitsPerCSSPx = mTargetFrame->PresContext()->AppUnitsPerCSSPixel();
   gfxIntSize filterRes = mFilterSpaceBounds.Size();
 
   mPostFilterDirtyRect =
     MapFrameRectToFilterSpace(aPostFilterDirtyRect, appUnitsPerCSSPx,
-                              frameSpaceInCSSPxToFilterSpace, filterRes);
+                              mFrameSpaceInCSSPxToFilterSpaceTransform, filterRes);
   mPreFilterDirtyRect =
     MapFrameRectToFilterSpace(aPreFilterDirtyRect, appUnitsPerCSSPx,
-                              frameSpaceInCSSPxToFilterSpace, filterRes);
+                              mFrameSpaceInCSSPxToFilterSpaceTransform, filterRes);
   nsIntRect preFilterVisualOverflowRect;
   if (aPreFilterVisualOverflowRectOverride) {
     preFilterVisualOverflowRect =
       MapFrameRectToFilterSpace(aPreFilterVisualOverflowRectOverride,
                                 appUnitsPerCSSPx,
-                                frameSpaceInCSSPxToFilterSpace, filterRes);
+                                mFrameSpaceInCSSPxToFilterSpaceTransform, filterRes);
   } else {
     nsRect preFilterVOR = mTargetFrame->GetPreEffectsVisualOverflowRect();
     preFilterVisualOverflowRect =
       MapFrameRectToFilterSpace(&preFilterVOR, appUnitsPerCSSPx,
-                                frameSpaceInCSSPxToFilterSpace, filterRes);
+                                mFrameSpaceInCSSPxToFilterSpaceTransform, filterRes);
   }
   mTargetBounds = preFilterVisualOverflowRect;
 }
@@ -421,9 +417,8 @@ nsFilterInstance::BuildSourcePaint(SourceInfo *aSource,
 
   gfxRect r = FilterSpaceToUserSpace(mFilterSpaceBounds);
 
-  gfxMatrix deviceToFilterSpace = GetFilterSpaceToDeviceSpaceTransform().Invert();
   gfxContext *gfx = tmpCtx.ThebesContext();
-  gfx->Multiply(deviceToFilterSpace);
+  gfx->Multiply(mDeviceSpaceToFilterSpaceTransform);
 
   gfx->Save();
 
@@ -521,8 +516,7 @@ nsFilterInstance::BuildSourceImage(gfxASurface* aTargetSurface,
   // space to device space and back again). However, that would make the
   // code more complex while being hard to get right without introducing
   // subtle bugs, and in practice it probably makes no real difference.)
-  gfxMatrix deviceToFilterSpace = GetFilterSpaceToDeviceSpaceTransform().Invert();
-  tmpCtx.ThebesContext()->Multiply(deviceToFilterSpace);
+  tmpCtx.ThebesContext()->Multiply(mDeviceSpaceToFilterSpaceTransform);
   mPaintCallback->Paint(&tmpCtx, mTargetFrame, &dirty, mTransformRoot);
 
   RefPtr<SourceSurface> sourceGraphicSource;
@@ -593,9 +587,9 @@ nsFilterInstance::Render(gfxContext* aContext)
     resultImageSource = resultImageDT->Snapshot();
   }
 
-  gfxMatrix ctm = GetFilterSpaceToDeviceSpaceTransform();
   nsSVGUtils::CompositeSurfaceMatrix(aContext, resultImage, resultImageSource,
-                                     filterRect.TopLeft(), ctm);
+                                     filterRect.TopLeft(),
+                                     mFilterSpaceToDeviceSpaceTransform);
 
   return NS_OK;
 }
@@ -660,7 +654,7 @@ nsFilterInstance::TransformFilterSpaceToFrameSpace(const nsIntRect& aRect) const
     return nsRect();
   }
   gfxRect r(aRect.x, aRect.y, aRect.width, aRect.height);
-  r = GetFilterSpaceToFrameSpaceInCSSPxTransform().TransformBounds(r);
+  r = mFilterSpaceToFrameSpaceInCSSPxTransform.TransformBounds(r);
   int32_t appUnitsPerCSSPx = mTargetFrame->PresContext()->AppUnitsPerCSSPixel();
   return nsLayoutUtils::RoundGfxRectToAppRect(r, appUnitsPerCSSPx);
 }

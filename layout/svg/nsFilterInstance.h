@@ -118,26 +118,6 @@ public:
    */
   nsresult ComputeSourceNeededRect(nsRect* aDirty);
 
-  /**
-   * Returns the transform from filter space to outer-<svg> device space.
-   */
-  gfxMatrix GetFilterSpaceToDeviceSpaceTransform() const {
-    return mFilterSpaceToDeviceSpaceTransform;
-  }
-
-  gfxPoint FilterSpaceToUserSpace(const gfxPoint& aPt) const;
-
-  /**
-   * Returns the transform from filter space to frame space, in CSS px. This
-   * transform does not transform to frame space in its normal app units, since
-   * app units are ints, requiring appropriate rounding which can't be done by
-   * a transform matrix. Callers have to do that themselves as appropriate for
-   * their needs.
-   */
-  gfxMatrix GetFilterSpaceToFrameSpaceInCSSPxTransform() const {
-    return mFilterSpaceToFrameSpaceInCSSPxTransform;
-  }
-
 private:
   struct SourceInfo {
     // Specifies which parts of the source need to be rendered.
@@ -189,7 +169,7 @@ private:
    * the filter sources, based on the value of mPostFilterDirtyRect.
    * This sets mNeededBounds on the corresponding SourceInfo structs.
    */
-   void ComputeNeededBoxes();
+  void ComputeNeededBoxes();
 
   gfxRect UserSpaceToFilterSpace(const gfxRect& aUserSpace) const;
 
@@ -232,8 +212,22 @@ private:
    */
   gfxRect                 mTargetBBox;
 
+  /**
+   * The transform from filter space to outer-<svg> device space.
+   */
   gfxMatrix               mFilterSpaceToDeviceSpaceTransform;
+  gfxMatrix               mDeviceSpaceToFilterSpaceTransform;
+
+  /**
+   * The transform from filter space to frame space, in CSS px. This
+   * transform does not transform to frame space in its normal app units, since
+   * app units are ints, requiring appropriate rounding which can't be done by
+   * a transform matrix. Callers have to do that themselves as appropriate for
+   * their needs.
+   */
   gfxMatrix               mFilterSpaceToFrameSpaceInCSSPxTransform;
+  gfxMatrix               mFrameSpaceInCSSPxToFilterSpaceTransform;
+
   gfxRect                 mUserSpaceBounds;
   nsIntRect               mFilterSpaceBounds;
 

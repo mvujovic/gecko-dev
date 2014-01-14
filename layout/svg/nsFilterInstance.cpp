@@ -176,7 +176,7 @@ nsFilterInstance::nsFilterInstance(
   mInitialized = true;
 }
 
-IntRect
+nsIntRect
 nsFilterInstance::UserSpaceToIntermediateSpace(const gfxRect& aUserSpace,
                                                bool aRoundOut,
                                                bool* aOverflow) const
@@ -197,12 +197,12 @@ nsFilterInstance::UserSpaceToIntermediateSpace(const gfxRect& aUserSpace,
   if (aOverflow) {
     *aOverflow = overflow;
   }
-  return overflow ? IntRect() : ToIntRect(filterSpaceInt);
+  return overflow ? nsIntRect() : filterSpaceInt;
 }
 
 gfxRect
 nsFilterInstance::IntermediateSpaceToUserSpace(
-  const IntRect& aIntermediateSpace) const
+  const nsIntRect& aIntermediateSpace) const
 {
   NS_ASSERTION(!mCanvasTransform.IsSingular(),
     "we shouldn't be doing anything if canvas transform is singular");
@@ -213,10 +213,10 @@ nsFilterInstance::IntermediateSpaceToUserSpace(
   return userSpace;
 }
 
-IntRect
+nsIntRect
 nsFilterInstance::UserSpaceToFilterSpace(const gfxRect& aUserSpace,
-                                            bool aRoundOut,
-                                            bool* aOverflow) const
+                                         bool aRoundOut,
+                                         bool* aOverflow) const
 {
   return UserSpaceToIntermediateSpace(aUserSpace - mUserSpaceBounds.TopLeft(),
                                       aRoundOut,
@@ -224,7 +224,7 @@ nsFilterInstance::UserSpaceToFilterSpace(const gfxRect& aUserSpace,
 }
 
 gfxRect
-nsFilterInstance::FilterSpaceToUserSpace(const IntRect& aFilterSpace) const
+nsFilterInstance::FilterSpaceToUserSpace(const nsIntRect& aFilterSpace) const
 {
   return IntermediateSpaceToUserSpace(aFilterSpace) +
          mUserSpaceBounds.TopLeft();
@@ -290,14 +290,13 @@ nsFilterInstance::ComputeOverallFilterMetrics()
   // Compute intermediate space bounds.
   FilterDescription filterDescription(mPrimitiveDescriptions,
                                       InfiniteIntRect());
-  nsIntRect sourceBounds =
-    ToNsIntRect(UserSpaceToIntermediateSpace(mTargetBBox));
+  nsIntRect sourceBounds = UserSpaceToIntermediateSpace(mTargetBBox);
   nsIntRegion postFilterExtents =
     FilterSupport::ComputePostFilterExtents(filterDescription, sourceBounds);
   mFilterSpaceBounds = postFilterExtents.GetBounds();
 
   // Compute filter region.
-  mUserSpaceBounds = IntermediateSpaceToUserSpace(ToIntRect(mFilterSpaceBounds));
+  mUserSpaceBounds = IntermediateSpaceToUserSpace(mFilterSpaceBounds);
 
   // Compute final filter space bounds.
   nsIntPoint filterSpaceOffset = mFilterSpaceBounds.TopLeft();
@@ -376,8 +375,7 @@ nsFilterInstance::ComputeNeededBoxes()
     sourceGraphicNeededRegion, fillPaintNeededRegion, strokePaintNeededRegion);
 
   bool overflow;
-  nsIntRect sourceBounds =
-    ToNsIntRect(UserSpaceToFilterSpace(mTargetBBox, true, &overflow));
+  nsIntRect sourceBounds = UserSpaceToFilterSpace(mTargetBBox, true, &overflow);
   if (overflow) {
     return;
   }
@@ -421,7 +419,7 @@ nsFilterInstance::BuildSourcePaint(SourceInfo *aSource,
   nsRenderingContext tmpCtx;
   tmpCtx.Init(mTargetFrame->PresContext()->DeviceContext(), ctx);
 
-  gfxRect r = FilterSpaceToUserSpace(ToIntRect(mFilterSpaceBounds));
+  gfxRect r = FilterSpaceToUserSpace(mFilterSpaceBounds);
 
   gfxMatrix deviceToFilterSpace = GetFilterSpaceToDeviceSpaceTransform().Invert();
   gfxContext *gfx = tmpCtx.ThebesContext();
@@ -506,7 +504,7 @@ nsFilterInstance::BuildSourceImage(gfxASurface* aTargetSurface,
   nsRenderingContext tmpCtx;
   tmpCtx.Init(mTargetFrame->PresContext()->DeviceContext(), ctx);
 
-  gfxRect r = FilterSpaceToUserSpace(ToIntRect(neededRect));
+  gfxRect r = FilterSpaceToUserSpace(neededRect);
   r.RoundOut();
   nsIntRect dirty;
   if (!gfxUtils::GfxRectToIntRect(r, &dirty))
@@ -628,8 +626,7 @@ nsFilterInstance::ComputePostFilterExtents(nsRect* aPostFilterExtents)
   NS_ASSERTION(mInitialized, "filter instance must be initialized");
 
   bool overflow;
-  nsIntRect sourceBounds =
-    ToNsIntRect(UserSpaceToFilterSpace(mTargetBBox, true, &overflow));
+  nsIntRect sourceBounds = UserSpaceToFilterSpace(mTargetBBox, true, &overflow);
   if (overflow) {
     *aPostFilterExtents = nsRect();
     return NS_ERROR_FAILURE;

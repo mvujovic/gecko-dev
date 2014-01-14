@@ -151,8 +151,11 @@ nsFilterInstance::nsFilterInstance(
     return;
   }
 
-  ComputeOverallFilterMetrics();
-
+  rv = ComputeOverallFilterMetrics();
+  if (NS_FAILED(rv)) {
+    return;
+  }
+ 
   ConvertRectsFromFrameSpaceToFilterSpace(aPostFilterDirtyRect,
                                           aPreFilterDirtyRect,
                                           aPreFilterVisualOverflowRectOverride);
@@ -162,7 +165,6 @@ nsFilterInstance::nsFilterInstance(
 
 nsIntRect
 nsFilterInstance::UserSpaceToIntermediateSpace(const gfxRect& aUserSpace,
-                                               bool aRoundOut,
                                                bool* aOverflow) const
 {
   NS_ASSERTION(!mCanvasTransform.IsSingular(),
@@ -171,9 +173,7 @@ nsFilterInstance::UserSpaceToIntermediateSpace(const gfxRect& aUserSpace,
   gfxRect filterSpace = aUserSpace;
   gfxSize scale = mCanvasTransform.ScaleFactors(true);
   filterSpace.Scale(scale.width, scale.height);
-  if (aRoundOut) {
-    filterSpace.RoundOut();
-  }
+  filterSpace.RoundOut();
 
   // Detect possible float->int overflow.
   nsIntRect filterSpaceInt;
@@ -199,11 +199,9 @@ nsFilterInstance::IntermediateSpaceToUserSpace(
 
 nsIntRect
 nsFilterInstance::UserSpaceToFilterSpace(const gfxRect& aUserSpace,
-                                         bool aRoundOut,
                                          bool* aOverflow) const
 {
   return UserSpaceToIntermediateSpace(aUserSpace - mUserSpaceBounds.TopLeft(),
-                                      aRoundOut,
                                       aOverflow);
 }
 
@@ -259,15 +257,18 @@ nsFilterInstance::TranslatePrimitiveSubregions(IntPoint translation)
   }
 }
 
-void
+nsresult
 nsFilterInstance::ComputeOverallFilterMetrics()
 {
-  // TODO(mvujovic): Follow ComputePostFilterExtents more closely. Check for overflow.
-
   // Compute intermediate space bounds.
   FilterDescription filterDescription(mPrimitiveDescriptions,
                                       InfiniteIntRect());
-  nsIntRect sourceBounds = UserSpaceToIntermediateSpace(mTargetBBox);
+  bool overflow;
+  nsIntRect sourceBounds = UserSpaceToIntermediateSpace(mTargetBBox, &overflow);
+  if (overflow) {
+    return NS_ERROR_FAILURE;
+  }
+
   nsIntRegion postFilterExtents =
     FilterSupport::ComputePostFilterExtents(filterDescription, sourceBounds);
   mFilterSpaceBounds = postFilterExtents.GetBounds();
@@ -306,6 +307,8 @@ nsFilterInstance::ComputeOverallFilterMetrics()
   mFrameSpaceInCSSPxToFilterSpaceTransform =
     mFilterSpaceToFrameSpaceInCSSPxTransform;
   mFrameSpaceInCSSPxToFilterSpaceTransform.Invert();
+
+  return NS_OK;
 }
 
 void
@@ -343,7 +346,7 @@ nsFilterInstance::ComputeNeededBoxes()
     sourceGraphicNeededRegion, fillPaintNeededRegion, strokePaintNeededRegion);
 
   bool overflow;
-  nsIntRect sourceBounds = UserSpaceToFilterSpace(mTargetBBox, true, &overflow);
+  nsIntRect sourceBounds = UserSpaceToFilterSpace(mTargetBBox, &overflow);
   if (overflow) {
     return;
   }
@@ -592,7 +595,7 @@ nsFilterInstance::ComputePostFilterExtents(nsRect* aPostFilterExtents)
   NS_ASSERTION(mInitialized, "filter instance must be initialized");
 
   bool overflow;
-  nsIntRect sourceBounds = UserSpaceToFilterSpace(mTargetBBox, true, &overflow);
+  nsIntRect sourceBounds = UserSpaceToFilterSpace(mTargetBBox, &overflow);
   if (overflow) {
     *aPostFilterExtents = nsRect();
     return NS_ERROR_FAILURE;

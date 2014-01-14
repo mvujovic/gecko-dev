@@ -171,12 +171,10 @@ private:
    */
   void ComputeNeededBoxes();
 
-  gfxRect UserSpaceToFilterSpace(const gfxRect& aUserSpace) const;
-
   nsRect TransformFilterSpaceToFrameSpace(const nsIntRect& aRect) const;
 
   void TranslatePrimitiveSubregions(IntPoint translation);
-  void ComputeOverallFilterMetrics();
+  nsresult ComputeOverallFilterMetrics();
 
   void ConvertRectsFromFrameSpaceToFilterSpace(
     const nsRect *aPostFilterDirtyRect,
@@ -184,12 +182,10 @@ private:
     const nsRect *aPreFilterVisualOverflowRectOverride);
 
   nsIntRect UserSpaceToFilterSpace(const gfxRect& aUserSpace,
-                                   bool aRoundOut = false,
                                    bool* aOverflow = nullptr) const;
   gfxRect FilterSpaceToUserSpace(const nsIntRect& aFilterSpace) const;
 
   nsIntRect UserSpaceToIntermediateSpace(const gfxRect& aUserSpace,
-                                         bool aRoundOut = false,
                                          bool* aOverflow = nullptr) const;
   gfxRect IntermediateSpaceToUserSpace(const nsIntRect& aIntermediateSpace) const;
 

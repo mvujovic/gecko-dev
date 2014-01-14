@@ -37,12 +37,6 @@ nsFilterInstance::ToGfxRect(const nsIntRect& rect)
   return gfxRect(rect.X(), rect.Y(), rect.Width(), rect.Height());
 }
 
-gfxRect
-nsFilterInstance::ToGfxRect(const IntRect& rect)
-{
-  return gfxRect(rect.X(), rect.Y(), rect.Width(), rect.Height());
-}
-
 // TODO(mvujovic): Actually use INT_MAX, INT_MIN.
 IntRect
 nsFilterInstance::InfiniteIntRect()

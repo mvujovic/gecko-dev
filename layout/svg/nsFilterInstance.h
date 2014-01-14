@@ -199,7 +199,6 @@ private:
 
   static IntRect ToIntRect(const gfxRect& rect);
   static gfxRect ToGfxRect(const nsIntRect& rect);
-  static gfxRect ToGfxRect(const IntRect& rect);
   static IntRect InfiniteIntRect();
 
   /**

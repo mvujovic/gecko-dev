@@ -53,30 +53,32 @@ nsFilterInstance::InfiniteIntRect()
 /**
  * Converts an nsRect that is relative to a filtered frame's origin (i.e. the
  * top-left corner of its border box) into filter space.
- * Returns the entire filter region (a rect the width/height of aFilterRes) if
- * aFrameRect is null, or if the result is too large to be stored in an
+ * Returns the entire filter region (a rect the width/height of aFilterRes)
+ * aFrameSpace is null or if the result is too large to be stored in an
  * nsIntRect.
  */
 nsIntRect
-nsFilterInstance::MapFrameRectToFilterSpace(const nsRect* aRect,
-                                            const gfxIntSize& aFilterRes)
+nsFilterInstance::FrameSpaceToFilterSpace(const nsRect* aFrameSpace)
 {
-  nsIntRect rect(0, 0, aFilterRes.width, aFilterRes.height);
-  if (aRect) {
-    if (aRect->IsEmpty()) {
-      return nsIntRect();
-    }
-    gfxRect rectInCSSPx =
-      nsLayoutUtils::RectToGfxRect(*aRect, mAppUnitsPerCSSPx);
-    gfxRect rectInFilterSpace =
-      mFrameSpaceInCSSPxToFilterSpaceTransform.TransformBounds(rectInCSSPx);
-    rectInFilterSpace.RoundOut();
-    nsIntRect intRect;
-    if (gfxUtils::GfxRectToIntRect(rectInFilterSpace, &intRect)) {
-      rect = intRect;
-    }
+  if (!aFrameSpace) {
+    return mFilterSpaceBounds;
   }
-  return rect;
+
+  if (aFrameSpace->IsEmpty()) {
+    return nsIntRect();
+  }
+
+  gfxRect frameSpaceInCSSPx =
+    nsLayoutUtils::RectToGfxRect(*aFrameSpace, mAppUnitsPerCSSPx);
+  gfxRect filterSpace =
+    mFrameSpaceInCSSPxToFilterSpaceTransform.TransformBounds(frameSpaceInCSSPx);
+  filterSpace.RoundOut();
+
+  nsIntRect filterSpaceInt;
+  if (!gfxUtils::GfxRectToIntRect(filterSpace, &filterSpaceInt)) {
+    return mFilterSpaceBounds;
+  }
+  return filterSpaceInt;
 }
 
 /**
@@ -318,26 +320,16 @@ nsFilterInstance::ConvertRectsFromFrameSpaceToFilterSpace(
   const nsRect *aPreFilterDirtyRect,
   const nsRect *aPreFilterVisualOverflowRectOverride)
 {
-  gfxIntSize filterRes = mFilterSpaceBounds.Size();
+  mPostFilterDirtyRect = FrameSpaceToFilterSpace(aPostFilterDirtyRect);
+  mPreFilterDirtyRect = FrameSpaceToFilterSpace(aPreFilterDirtyRect);
 
-  mPostFilterDirtyRect =
-    MapFrameRectToFilterSpace(aPostFilterDirtyRect,
-                              filterRes);
-  mPreFilterDirtyRect =
-    MapFrameRectToFilterSpace(aPreFilterDirtyRect,
-                              filterRes);
-  nsIntRect preFilterVisualOverflowRect;
   if (aPreFilterVisualOverflowRectOverride) {
-    preFilterVisualOverflowRect =
-      MapFrameRectToFilterSpace(aPreFilterVisualOverflowRectOverride,
-                                filterRes);
+    mTargetBounds =
+      FrameSpaceToFilterSpace(aPreFilterVisualOverflowRectOverride);
   } else {
     nsRect preFilterVOR = mTargetFrame->GetPreEffectsVisualOverflowRect();
-    preFilterVisualOverflowRect =
-      MapFrameRectToFilterSpace(&preFilterVOR,
-                                filterRes);
+    mTargetBounds = FrameSpaceToFilterSpace(&preFilterVOR);
   }
-  mTargetBounds = preFilterVisualOverflowRect;
 }
 
 void

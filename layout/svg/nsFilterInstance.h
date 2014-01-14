@@ -193,8 +193,7 @@ private:
                                          bool* aOverflow = nullptr) const;
   gfxRect IntermediateSpaceToUserSpace(const nsIntRect& aIntermediateSpace) const;
 
-  nsIntRect MapFrameRectToFilterSpace(const nsRect* aRect,
-                                      const gfxIntSize& aFilterRes);
+  nsIntRect FrameSpaceToFilterSpace(const nsRect* aFrameSpace);
 
   gfxMatrix ComputeUserSpaceToFrameSpaceInCSSPxTransform();
 

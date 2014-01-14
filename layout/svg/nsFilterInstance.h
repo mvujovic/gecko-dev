@@ -119,12 +119,6 @@ public:
   nsresult ComputeSourceNeededRect(nsRect* aDirty);
 
   /**
-   * Returns the transform from the filtered element's user space to filter
-   * space. This will be a simple translation and/or scale.
-   */
-  gfxMatrix GetUserSpaceToFilterSpaceTransform() const;
-
-  /**
    * Returns the transform from filter space to outer-<svg> device space.
    */
   gfxMatrix GetFilterSpaceToDeviceSpaceTransform() const {
@@ -213,10 +207,15 @@ private:
     const nsRect *aPreFilterDirtyRect,
     const nsRect *aPreFilterVisualOverflowRectOverride);
 
-  IntRect UserSpaceToIntermediateSpace(
-    const gfxRect& aUserSpace, bool aRoundOut = false) const;
-  gfxRect IntermediateSpaceToUserSpace(
-    const IntRect& aIntermediateSpace) const;
+  IntRect UserSpaceToFilterSpace(const gfxRect& aUserSpace,
+                                 bool aRoundOut = false,
+                                 bool* aOverflow = nullptr) const;
+  gfxRect FilterSpaceToUserSpace(const IntRect& aFilterSpace) const;
+
+  IntRect UserSpaceToIntermediateSpace(const gfxRect& aUserSpace,
+                                       bool aRoundOut = false,
+                                       bool* aOverflow = nullptr) const;
+  gfxRect IntermediateSpaceToUserSpace(const IntRect& aIntermediateSpace) const;
 
   static nsIntRect ToNsIntRect(const IntRect& rect);
   static nsIntRect ToNsIntRect(const gfxRect& rect);

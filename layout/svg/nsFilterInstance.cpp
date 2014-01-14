@@ -177,8 +177,9 @@ nsFilterInstance::nsFilterInstance(
 }
 
 IntRect
-nsFilterInstance::UserSpaceToIntermediateSpace(
-  const gfxRect& aUserSpace, bool aRoundOut) const
+nsFilterInstance::UserSpaceToIntermediateSpace(const gfxRect& aUserSpace,
+                                               bool aRoundOut,
+                                               bool* aOverflow) const
 {
   NS_ASSERTION(!mCanvasTransform.IsSingular(),
     "we shouldn't be doing anything if canvas transform is singular");
@@ -186,9 +187,17 @@ nsFilterInstance::UserSpaceToIntermediateSpace(
   gfxRect filterSpace = aUserSpace;
   gfxSize scale = mCanvasTransform.ScaleFactors(true);
   filterSpace.Scale(scale.width, scale.height);
-  if (aRoundOut)
+  if (aRoundOut) {
     filterSpace.RoundOut();
-  return ToIntRect(filterSpace);
+  }
+
+  // Detect possible float->int overflow.
+  nsIntRect filterSpaceInt;
+  bool overflow = !gfxUtils::GfxRectToIntRect(filterSpace, &filterSpaceInt);
+  if (aOverflow) {
+    *aOverflow = overflow;
+  }
+  return overflow ? IntRect() : ToIntRect(filterSpaceInt);
 }
 
 gfxRect
@@ -204,13 +213,21 @@ nsFilterInstance::IntermediateSpaceToUserSpace(
   return userSpace;
 }
 
-gfxRect
-nsFilterInstance::UserSpaceToFilterSpace(const gfxRect& aRect) const
+IntRect
+nsFilterInstance::UserSpaceToFilterSpace(const gfxRect& aUserSpace,
+                                            bool aRoundOut,
+                                            bool* aOverflow) const
 {
-  gfxRect r = aRect - mUserSpaceBounds.TopLeft();
-  r.Scale(mFilterSpaceBounds.width / mUserSpaceBounds.Width(),
-          mFilterSpaceBounds.height / mUserSpaceBounds.Height());
-  return r;
+  return UserSpaceToIntermediateSpace(aUserSpace - mUserSpaceBounds.TopLeft(),
+                                      aRoundOut,
+                                      aOverflow);
+}
+
+gfxRect
+nsFilterInstance::FilterSpaceToUserSpace(const IntRect& aFilterSpace) const
+{
+  return IntermediateSpaceToUserSpace(aFilterSpace) +
+         mUserSpaceBounds.TopLeft();
 }
 
 gfxPoint
@@ -218,16 +235,6 @@ nsFilterInstance::FilterSpaceToUserSpace(const gfxPoint& aPt) const
 {
   return gfxPoint(aPt.x * mUserSpaceBounds.Width() / mFilterSpaceBounds.width + mUserSpaceBounds.X(),
                   aPt.y * mUserSpaceBounds.Height() / mFilterSpaceBounds.height + mUserSpaceBounds.Y());
-}
-
-gfxMatrix
-nsFilterInstance::GetUserSpaceToFilterSpaceTransform() const
-{
-  gfxFloat widthScale = mFilterSpaceBounds.width / mUserSpaceBounds.Width();
-  gfxFloat heightScale = mFilterSpaceBounds.height / mUserSpaceBounds.Height();
-  return gfxMatrix(widthScale, 0.0f,
-                   0.0f, heightScale,
-                   -mUserSpaceBounds.X() * widthScale, -mUserSpaceBounds.Y() * heightScale);
 }
 
 nsresult
@@ -368,15 +375,15 @@ nsFilterInstance::ComputeNeededBoxes()
     filter, mPostFilterDirtyRect,
     sourceGraphicNeededRegion, fillPaintNeededRegion, strokePaintNeededRegion);
 
-  nsIntRect sourceBoundsInt;
-  gfxRect sourceBounds = UserSpaceToFilterSpace(mTargetBBox);
-  sourceBounds.RoundOut();
-  // Detect possible float->int overflow
-  if (!gfxUtils::GfxRectToIntRect(sourceBounds, &sourceBoundsInt))
+  bool overflow;
+  nsIntRect sourceBounds =
+    ToNsIntRect(UserSpaceToFilterSpace(mTargetBBox, true, &overflow));
+  if (overflow) {
     return;
-  sourceBoundsInt.UnionRect(sourceBoundsInt, mTargetBounds);
+  }
+  sourceBounds.UnionRect(sourceBounds, mTargetBounds);
 
-  sourceGraphicNeededRegion.And(sourceGraphicNeededRegion, sourceBoundsInt);
+  sourceGraphicNeededRegion.And(sourceGraphicNeededRegion, sourceBounds);
 
   mSourceGraphic.mNeededBounds = sourceGraphicNeededRegion.GetBounds();
   mFillPaint.mNeededBounds = fillPaintNeededRegion.GetBounds();
@@ -414,10 +421,7 @@ nsFilterInstance::BuildSourcePaint(SourceInfo *aSource,
   nsRenderingContext tmpCtx;
   tmpCtx.Init(mTargetFrame->PresContext()->DeviceContext(), ctx);
 
-  // TODO(mvujovic): Simplify this.
-  gfxMatrix m = GetUserSpaceToFilterSpaceTransform();
-  m.Invert();
-  gfxRect r = m.TransformBounds(mFilterSpaceBounds);
+  gfxRect r = FilterSpaceToUserSpace(ToIntRect(mFilterSpaceBounds));
 
   gfxMatrix deviceToFilterSpace = GetFilterSpaceToDeviceSpaceTransform().Invert();
   gfxContext *gfx = tmpCtx.ThebesContext();
@@ -502,9 +506,7 @@ nsFilterInstance::BuildSourceImage(gfxASurface* aTargetSurface,
   nsRenderingContext tmpCtx;
   tmpCtx.Init(mTargetFrame->PresContext()->DeviceContext(), ctx);
 
-  gfxMatrix m = GetUserSpaceToFilterSpaceTransform();
-  m.Invert();
-  gfxRect r = m.TransformBounds(neededRect);
+  gfxRect r = FilterSpaceToUserSpace(ToIntRect(neededRect));
   r.RoundOut();
   nsIntRect dirty;
   if (!gfxUtils::GfxRectToIntRect(r, &dirty))
@@ -625,20 +627,19 @@ nsFilterInstance::ComputePostFilterExtents(nsRect* aPostFilterExtents)
 {
   NS_ASSERTION(mInitialized, "filter instance must be initialized");
 
-  nsIntRect sourceBoundsInt;
-  gfxRect sourceBounds = UserSpaceToFilterSpace(mTargetBBox);
-  sourceBounds.RoundOut();
-  // Detect possible float->int overflow
-  if (!gfxUtils::GfxRectToIntRect(sourceBounds, &sourceBoundsInt)) {
+  bool overflow;
+  nsIntRect sourceBounds =
+    ToNsIntRect(UserSpaceToFilterSpace(mTargetBBox, true, &overflow));
+  if (overflow) {
     *aPostFilterExtents = nsRect();
     return NS_ERROR_FAILURE;
   }
-  sourceBoundsInt.UnionRect(sourceBoundsInt, mTargetBounds);
+  sourceBounds.UnionRect(sourceBounds, mTargetBounds);
 
   IntRect filterSpaceBounds = ToIntRect(mFilterSpaceBounds);
   FilterDescription filter(mPrimitiveDescriptions, filterSpaceBounds);
   nsIntRegion postFilterExtents =
-    FilterSupport::ComputePostFilterExtents(filter, sourceBoundsInt);
+    FilterSupport::ComputePostFilterExtents(filter, sourceBounds);
   *aPostFilterExtents = TransformFilterSpaceToFrameSpace(postFilterExtents.GetBounds());
 
   return NS_OK;

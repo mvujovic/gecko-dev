@@ -64,10 +64,8 @@ public:
    */
   Point3D ConvertLocation(const Point3D& aPoint) const;
 
-  IntRect UserSpaceToFilterSpace(
-    const gfxRect& aUserSpace) const;
-  gfxRect FilterSpaceToUserSpace(
-    const IntRect& aFilterSpace) const;
+  IntRect UserSpaceToFilterSpace(const gfxRect& aUserSpace) const;
+  gfxRect FilterSpaceToUserSpace(const IntRect& aFilterSpace) const;
 
 private:
   /**

@@ -138,10 +138,6 @@ public:
     return mFilterSpaceToFrameSpaceInCSSPxTransform;
   }
 
-  int32_t AppUnitsPerCSSPixel() const {
-    return mTargetFrame->PresContext()->AppUnitsPerCSSPixel();
-  }
-
 private:
   struct SourceInfo {
     // Specifies which parts of the source need to be rendered.

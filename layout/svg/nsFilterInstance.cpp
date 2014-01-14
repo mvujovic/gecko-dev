@@ -661,5 +661,6 @@ nsFilterInstance::TransformFilterSpaceToFrameSpace(const nsIntRect& aRect) const
   }
   gfxRect r(aRect.x, aRect.y, aRect.width, aRect.height);
   r = GetFilterSpaceToFrameSpaceInCSSPxTransform().TransformBounds(r);
-  return nsLayoutUtils::RoundGfxRectToAppRect(r, AppUnitsPerCSSPixel());
+  int32_t appUnitsPerCSSPx = mTargetFrame->PresContext()->AppUnitsPerCSSPixel();
+  return nsLayoutUtils::RoundGfxRectToAppRect(r, appUnitsPerCSSPx);
 }

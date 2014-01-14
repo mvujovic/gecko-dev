@@ -194,11 +194,9 @@ private:
   gfxRect IntermediateSpaceToUserSpace(const nsIntRect& aIntermediateSpace) const;
 
   nsIntRect MapFrameRectToFilterSpace(const nsRect* aRect,
-                                      const gfxMatrix& aFrameSpaceInCSSPxToFilterSpace,
                                       const gfxIntSize& aFilterRes);
 
-  gfxMatrix
-  GetUserToFrameSpaceInCSSPxTransform(nsIFrame *aFrame);
+  gfxMatrix ComputeUserSpaceToFrameSpaceInCSSPxTransform();
 
   static IntRect ToIntRect(const gfxRect& rect);
   static gfxRect ToGfxRect(const nsIntRect& rect);

@@ -59,8 +59,7 @@ nsFilterInstance::InfiniteIntRect()
  */
 nsIntRect
 nsFilterInstance::MapFrameRectToFilterSpace(const nsRect* aRect,
-                          const gfxMatrix& aFrameSpaceInCSSPxToFilterSpace,
-                          const gfxIntSize& aFilterRes)
+                                            const gfxIntSize& aFilterRes)
 {
   nsIntRect rect(0, 0, aFilterRes.width, aFilterRes.height);
   if (aRect) {
@@ -70,7 +69,7 @@ nsFilterInstance::MapFrameRectToFilterSpace(const nsRect* aRect,
     gfxRect rectInCSSPx =
       nsLayoutUtils::RectToGfxRect(*aRect, mAppUnitsPerCSSPx);
     gfxRect rectInFilterSpace =
-      aFrameSpaceInCSSPxToFilterSpace.TransformBounds(rectInCSSPx);
+      mFrameSpaceInCSSPxToFilterSpaceTransform.TransformBounds(rectInCSSPx);
     rectInFilterSpace.RoundOut();
     nsIntRect intRect;
     if (gfxUtils::GfxRectToIntRect(rectInFilterSpace, &intRect)) {
@@ -86,11 +85,11 @@ nsFilterInstance::MapFrameRectToFilterSpace(const nsRect* aRect,
  * top-left corner of its border box, aka the top left corner of its mRect.
  */
 gfxMatrix
-nsFilterInstance::GetUserToFrameSpaceInCSSPxTransform(nsIFrame *aFrame)
+nsFilterInstance::ComputeUserSpaceToFrameSpaceInCSSPxTransform()
 {
   gfxMatrix userToFrameSpaceInCSSPx;
 
-  if ((aFrame->GetStateBits() & NS_FRAME_SVG_LAYOUT)) {
+  if ((mTargetFrame->GetStateBits() & NS_FRAME_SVG_LAYOUT)) {
     // As currently implemented by Mozilla for the purposes of filters, user
     // space is the coordinate system established by GetCanvasTM(), since
     // that's what we use to set filterToDeviceSpace above. In other words,
@@ -101,13 +100,13 @@ nsFilterInstance::GetUserToFrameSpaceInCSSPxTransform(nsIFrame *aFrame)
     // normally defined. (XXX We should think about fixing this.) The only
     // frame type for which these extra transforms are not simply an x/y
     // translation is nsSVGInnerSVGFrame, hence we treat it specially here.
-    if (aFrame->GetType() == nsGkAtoms::svgInnerSVGFrame) {
+    if (mTargetFrame->GetType() == nsGkAtoms::svgInnerSVGFrame) {
       userToFrameSpaceInCSSPx =
-        static_cast<nsSVGElement*>(aFrame->GetContent())->
+        static_cast<nsSVGElement*>(mTargetFrame->GetContent())->
           PrependLocalTransformsTo(gfxMatrix());
     } else {
       gfxPoint targetsUserSpaceOffset =
-        nsLayoutUtils::RectToGfxRect(aFrame->GetRect(), mAppUnitsPerCSSPx).
+        nsLayoutUtils::RectToGfxRect(mTargetFrame->GetRect(), mAppUnitsPerCSSPx).
                          TopLeft();
       userToFrameSpaceInCSSPx.Translate(-targetsUserSpaceOffset);
     }
@@ -305,7 +304,7 @@ nsFilterInstance::ComputeOverallFilterMetrics()
 
   // Compute filter space to frame space transform.
   mFilterSpaceToFrameSpaceInCSSPxTransform =
-    filterToUserSpace * GetUserToFrameSpaceInCSSPxTransform(mTargetFrame);
+    filterToUserSpace * ComputeUserSpaceToFrameSpaceInCSSPxTransform();
 
   // Compute the inverse transform.
   mFrameSpaceInCSSPxToFilterSpaceTransform =
@@ -323,23 +322,19 @@ nsFilterInstance::ConvertRectsFromFrameSpaceToFilterSpace(
 
   mPostFilterDirtyRect =
     MapFrameRectToFilterSpace(aPostFilterDirtyRect,
-                              mFrameSpaceInCSSPxToFilterSpaceTransform,
                               filterRes);
   mPreFilterDirtyRect =
     MapFrameRectToFilterSpace(aPreFilterDirtyRect,
-                              mFrameSpaceInCSSPxToFilterSpaceTransform,
                               filterRes);
   nsIntRect preFilterVisualOverflowRect;
   if (aPreFilterVisualOverflowRectOverride) {
     preFilterVisualOverflowRect =
       MapFrameRectToFilterSpace(aPreFilterVisualOverflowRectOverride,
-                                mFrameSpaceInCSSPxToFilterSpaceTransform,
                                 filterRes);
   } else {
     nsRect preFilterVOR = mTargetFrame->GetPreEffectsVisualOverflowRect();
     preFilterVisualOverflowRect =
       MapFrameRectToFilterSpace(&preFilterVOR,
-                                mFrameSpaceInCSSPxToFilterSpaceTransform,
                                 filterRes);
   }
   mTargetBounds = preFilterVisualOverflowRect;

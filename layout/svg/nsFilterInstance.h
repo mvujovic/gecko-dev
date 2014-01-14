@@ -193,8 +193,13 @@ private:
                                          bool* aOverflow = nullptr) const;
   gfxRect IntermediateSpaceToUserSpace(const nsIntRect& aIntermediateSpace) const;
 
-  static nsIntRect ToNsIntRect(const IntRect& rect);
-  static nsIntRect ToNsIntRect(const gfxRect& rect);
+  nsIntRect MapFrameRectToFilterSpace(const nsRect* aRect,
+                                      const gfxMatrix& aFrameSpaceInCSSPxToFilterSpace,
+                                      const gfxIntSize& aFilterRes);
+
+  gfxMatrix
+  GetUserToFrameSpaceInCSSPxTransform(nsIFrame *aFrame);
+
   static IntRect ToIntRect(const gfxRect& rect);
   static gfxRect ToGfxRect(const nsIntRect& rect);
   static gfxRect ToGfxRect(const IntRect& rect);
@@ -251,6 +256,8 @@ private:
    * unfortunately.)
    */
   nsIntRect               mPreFilterDirtyRect;
+
+  uint32_t                mAppUnitsPerCSSPx;
 
   SourceInfo              mSourceGraphic;
   SourceInfo              mFillPaint;

@@ -13,11 +13,10 @@ using namespace mozilla;
 using namespace mozilla::dom;
 using namespace mozilla::gfx;
 
-// TODO(mvujovic): Actually use INT_MAX, INT_MIN.
 IntRect
 nsCSSFilterInstance::InfiniteIntRect()
 {
-  return IntRect(-5000, -5000, 10000, 10000);
+  return IntRect(-INT_MAX / 2, -INT_MAX / 2, INT_MAX, INT_MAX);
 }
 
 nsCSSFilterInstance::nsCSSFilterInstance(

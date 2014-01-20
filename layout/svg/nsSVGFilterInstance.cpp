@@ -93,7 +93,6 @@ nsSVGFilterInstance::nsSVGFilterInstance(
   uint32_t finalNumPrimitives = mPrimitiveDescriptions.Length();
   if (finalNumPrimitives == initialNumPrimitives) {
     // Nothing should be rendered, so nothing is needed.
-    // TODO(mvujovic): Should we really kill the entire filter chain here?
     return;
   }
 
@@ -452,7 +451,6 @@ nsSVGFilterInstance::ComputeIntermediateSpacePrimitiveSubregion(
   IntRect intermediateSpaceSubregion = 
     UserSpaceToIntermediateSpace(userSpaceSubregion, roundOut);
 
-  // TODO(mvujovic): This is in filter space, not intermediate space.
   if (!fE->mLengthAttributes[nsSVGFE::ATTR_X].IsExplicitlySet())
     intermediateSpaceSubregion.x = defaultSubregion.X();
   if (!fE->mLengthAttributes[nsSVGFE::ATTR_Y].IsExplicitlySet())

@@ -50,7 +50,7 @@ nsSVGFilterInstance::nsSVGFilterInstance(
     mInitialized(false)
 {
   // Get the filter frame.
-  mFilterFrame = GetFilterFrame(mFilter.GetURL());
+  mFilterFrame = GetFilterFrame();
   if (!mFilterFrame) {
     return;
   }
@@ -166,8 +166,9 @@ nsSVGFilterInstance::ConvertLocation(const Point3D& aPoint) const
 }
 
 nsSVGFilterFrame*
-nsSVGFilterInstance::GetFilterFrame(nsIURI* url)
+nsSVGFilterInstance::GetFilterFrame()
 {
+  nsIURI* url = mFilter.GetURL();
   if (!url) {
     NS_NOTREACHED("expected a filter URL");
     return nullptr;
@@ -179,14 +180,14 @@ nsSVGFilterInstance::GetFilterFrame(nsIURI* url)
   filterElement.Reset(mTargetFrame->GetContent(), url, watch);
   Element* element = filterElement.get();
   if (!element) {
-    NS_NOTREACHED("expected a referenced element");
+    // URL points to no element.
     return nullptr;
   }
 
   // Get the frame of the referenced filter element.
   nsIFrame* frame = element->GetPrimaryFrame();
   if (frame->GetType() != nsGkAtoms::svgFilterFrame) {
-    NS_NOTREACHED("expected an SVG filter element");
+    // Not an SVG filter element.
     return nullptr;
   }
   return static_cast<nsSVGFilterFrame*>(frame);    

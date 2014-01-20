@@ -74,7 +74,7 @@ private:
    */
   float GetPrimitiveNumber(uint8_t aCtxType, float aValue) const;
 
-  nsSVGFilterFrame* GetFilterFrame(nsIURI* url);
+  nsSVGFilterFrame* GetFilterFrame();
   gfxRect ComputeUserSpaceBounds();
   IntRect UserSpaceToIntermediateSpace(
     const gfxRect& aUserSpace, bool aRoundOut = false) const;

@@ -177,7 +177,6 @@ public:
 
 
   const nsTArray<nsStyleFilter>& GetFilters() { return mFilters; }
-  nsSVGFilterFrame* GetFilterFrame(const nsStyleFilter& nsStyleFilter);
   bool ReferencesValidResources();
   bool IsInObserverLists() const;
 
@@ -186,12 +185,6 @@ public:
 
   // nsISupports
   NS_DECL_ISUPPORTS
-
-  // TODO(mvujovic): Remove
-  nsSVGFilterFrame* GetFirstFilterFrame()
-  {
-    return mReferences.Length() > 0 ? mReferences[0]->GetFilterFrame() : nullptr;
-  }
 
 private:
   void DoUpdate();
@@ -363,12 +356,6 @@ public:
     bool HasNoFilterOrHasValidFilter() {
       return !mFilter || mFilter->ReferencesValidResources();
     }
-
-    // TODO(mvujovic): Remove
-    nsSVGFilterFrame* GetFirstFilterFrame()
-    {
-      return mFilter ? mFilter->GetFirstFilterFrame() : nullptr;
-    }
   };
 
   /**
@@ -395,10 +382,6 @@ public:
    * @param aFrame should be the first continuation
    */
   static nsSVGFilterProperty *GetFilterProperty(nsIFrame *aFrame);
-  static nsSVGFilterFrame *GetFirstFilterFrame(nsIFrame *aFrame) {
-    nsSVGFilterProperty *prop = GetFilterProperty(aFrame);
-    return prop ? prop->GetFirstFilterFrame() : nullptr;
-  }
 
   /**
    * @param aFrame must be a first-continuation.

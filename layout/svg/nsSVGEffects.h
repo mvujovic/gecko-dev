@@ -175,7 +175,6 @@ public:
                       nsIFrame *aFilteredFrame);
   virtual ~nsSVGFilterProperty();
 
-
   const nsTArray<nsStyleFilter>& GetFilters() { return mFilters; }
   bool ReferencesValidResources();
   bool IsInObserverLists() const;

@@ -250,19 +250,6 @@ nsFilterInstance::TranslatePrimitiveSubregions(IntPoint translation)
     FilterPrimitiveDescription& descr = mPrimitiveDescriptions[i];
     IntRect primitiveSubregion = descr.PrimitiveSubregion() + translation;
     descr.SetPrimitiveSubregion(primitiveSubregion);
-
-    // Some filter primitives have offsets that need to be translated from
-    // intermediate space to filter space as well.
-    switch (descr.Type()) {
-    case FilterPrimitiveDescription::eOffset: {
-      IntPoint offset = descr.Attributes().GetIntPoint(eOffsetOffset);
-      offset += translation;
-      descr.Attributes().Set(eOffsetOffset, offset);
-      break;
-    }
-    default:
-      break;
-    }
   }
 }
 
@@ -270,25 +257,32 @@ nsresult
 nsFilterInstance::ComputeOverallFilterMetrics()
 {
   // Compute intermediate space bounds.
-  FilterDescription filterDescription(mPrimitiveDescriptions,
-                                      InfiniteIntRect());
   bool overflow;
-  nsIntRect sourceBounds = UserSpaceToIntermediateSpace(mTargetBBox, &overflow);
+  nsIntRect sourceIntermediateSpaceBounds =
+    UserSpaceToIntermediateSpace(mTargetBBox, &overflow);
   if (overflow) {
     return NS_ERROR_FAILURE;
   }
 
+  FilterDescription filterDescription(mPrimitiveDescriptions,
+                                      InfiniteIntRect());
   nsIntRegion postFilterExtents =
-    FilterSupport::ComputePostFilterExtents(filterDescription, sourceBounds);
-  mFilterSpaceBounds = postFilterExtents.GetBounds();
+    FilterSupport::ComputePostFilterExtents(filterDescription,
+                                            sourceIntermediateSpaceBounds);
+  nsIntRect intermediateSpaceBounds = postFilterExtents.GetBounds();
+
+  intermediateSpaceBounds.UnionRect(intermediateSpaceBounds,
+                                    sourceIntermediateSpaceBounds);
 
   // Compute filter region.
-  mUserSpaceBounds = IntermediateSpaceToUserSpace(mFilterSpaceBounds);
+  mUserSpaceBounds = IntermediateSpaceToUserSpace(intermediateSpaceBounds);
 
   // Compute final filter space bounds.
-  nsIntPoint filterSpaceOffset = mFilterSpaceBounds.TopLeft();
-  mFilterSpaceBounds -= filterSpaceOffset;
-  TranslatePrimitiveSubregions(-IntPoint(filterSpaceOffset.x, filterSpaceOffset.y));
+  nsIntPoint filterSpaceOffset = intermediateSpaceBounds.TopLeft();
+  IntPoint translation = -IntPoint(filterSpaceOffset.x, filterSpaceOffset.y);
+  TranslatePrimitiveSubregions(translation);
+  mFilterSpaceBounds = nsIntRect(nsIntPoint(0, 0),
+                                 intermediateSpaceBounds.Size());
 
   // Compute various transforms.
 

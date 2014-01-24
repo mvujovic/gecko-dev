@@ -247,11 +247,22 @@ void
 nsFilterInstance::TranslatePrimitiveSubregions(IntPoint translation)
 {
   for (uint32_t i = 0; i < mPrimitiveDescriptions.Length(); i++) {
-    FilterPrimitiveDescription& primitiveDescription = 
-      mPrimitiveDescriptions[i];
-    IntRect primitiveSubregion = primitiveDescription.PrimitiveSubregion();
-    primitiveSubregion += translation;
-    primitiveDescription.SetPrimitiveSubregion(primitiveSubregion);
+    FilterPrimitiveDescription& descr = mPrimitiveDescriptions[i];
+    IntRect primitiveSubregion = descr.PrimitiveSubregion() + translation;
+    descr.SetPrimitiveSubregion(primitiveSubregion);
+
+    // Some filter primitives have offsets that need to be translated from
+    // intermediate space to filter space as well.
+    switch (descr.Type()) {
+    case FilterPrimitiveDescription::eOffset: {
+      IntPoint offset = descr.Attributes().GetIntPoint(eOffsetOffset);
+      offset += translation;
+      descr.Attributes().Set(eOffsetOffset, offset);
+      break;
+    }
+    default:
+      break;
+    }
   }
 }
 

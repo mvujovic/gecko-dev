@@ -461,6 +461,9 @@ nsSVGFilterInstance::ComputeIntermediateSpacePrimitiveSubregion(
   if (!fE->mLengthAttributes[nsSVGFE::ATTR_HEIGHT].IsExplicitlySet())
     intermediateSpaceSubregion.height = defaultSubregion.Height();
 
+  // Clip the primitive subregion to the filter region.
+  intermediateSpaceSubregion.IntersectRect(intermediateSpaceSubregion,
+                                           mIntermediateSpaceBounds);
   return intermediateSpaceSubregion;
 }
 

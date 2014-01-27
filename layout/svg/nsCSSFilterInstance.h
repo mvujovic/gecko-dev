@@ -11,6 +11,13 @@
 
 class nsIFrame;
 
+/**
+ * This class helps nsFilterInstance build its filter graph.
+ * This class processes a CSS filter function (e.g. blur(3px)).
+ * It creates new FilterPrimitiveDescription(s) to implement the CSS filter
+ * function and appends them to the list of FilterPrimitiveDescription(s)
+ * passed into the constructor.
+ */
 class nsCSSFilterInstance
 {
 typedef mozilla::gfx::FilterPrimitiveDescription FilterPrimitiveDescription;

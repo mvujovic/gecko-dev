@@ -61,6 +61,7 @@ nsCSSFilterInstance::BuildPrimitivesForBlur()
 
   uint32_t numPrimitiveDescriptions = mPrimitiveDescriptions.Length();
   if (numPrimitiveDescriptions > 0) {
+    // Use the output of the last filter primitive description as the input.
     uint32_t lastPrimitiveDescrIndex = numPrimitiveDescriptions - 1;
     descr.SetInputPrimitive(0, lastPrimitiveDescrIndex);
 
@@ -69,6 +70,7 @@ nsCSSFilterInstance::BuildPrimitivesForBlur()
     descr.SetInputColorSpace(0, lastColorSpace);
     descr.SetOutputColorSpace(lastColorSpace);
   } else {
+    // Use the SourceGraphic as the input.
     descr.SetInputPrimitive(0,
       FilterPrimitiveDescription::kPrimitiveIndexSourceGraphic);
     descr.SetInputColorSpace(0, SRGB);

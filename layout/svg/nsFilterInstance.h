@@ -171,26 +171,95 @@ private:
    */
   void ComputeNeededBoxes();
 
-  nsRect TransformFilterSpaceToFrameSpace(const nsIntRect& aRect) const;
-
+  /**
+   * Translates all of the primitive descriptions' subregions
+   * by a certain amount.
+   */
   void TranslatePrimitiveSubregions(IntPoint translation);
+
+  /**
+   * Computes the filter region based on the built primitive descriptions.
+   * Also, computes various transforms for converting between spaces.
+   */
   nsresult ComputeOverallFilterMetrics();
 
+
+  /**
+   * Sets this filter instance's pre and post filter dirty rects.
+   */
   void ConvertRectsFromFrameSpaceToFilterSpace(
     const nsRect *aPostFilterDirtyRect,
     const nsRect *aPreFilterDirtyRect,
     const nsRect *aPreFilterVisualOverflowRectOverride);
 
+  /**
+   * The following set of functions convert rectangles from one space
+   * (i.e. coordinate system) to another.
+   *
+   * The spaces are defined as follows:
+   *
+   * "user space"
+   *    The filtered element's SVG user space or HTML CSS pixel space.
+   *
+   * "intermediate space"
+   *    User space scaled to device pixels.
+   *    Shares the same origin as user space.
+   *    Filters with outsets (such as gaussian blur) may extend into the
+   *    negative regions of this space.
+   *    This space is used for convenience while building the filter primitive
+   *    graph, so that all filter primitives are created with respect to the
+   *    same origin.
+   *
+   * "filter space"
+   *    Intermediate space translated so to the origin of the filtered result.
+   *    Filters with outsets (such as gaussian blur) will be fully contained
+   *    within the positive regions of this space.
+   *    This space is computed after the filter primitive graph is built.
+   * 
+   * "frame space"
+   *    The filtered element's frame space in app units.
+   *
+   * "frame space in CSS pixels"
+   *    The filtered element's frame space in CSS pixels.
+   *
+   */
+
+  /**
+   * Transforms a rectangle in user space to filter space.
+   */
   nsIntRect UserSpaceToFilterSpace(const gfxRect& aUserSpace,
                                    bool* aOverflow = nullptr) const;
+
+  /**
+   * Transforms a rectangle in filter space to user space.
+   */
   gfxRect FilterSpaceToUserSpace(const nsIntRect& aFilterSpace) const;
 
+  /**
+   * Transforms a rectangle in user space to intermediate space.
+   */
   nsIntRect UserSpaceToIntermediateSpace(const gfxRect& aUserSpace,
                                          bool* aOverflow = nullptr) const;
+
+  /**
+   * Transforms a rectangle in intermediate space to user space.
+   */
   gfxRect IntermediateSpaceToUserSpace(const nsIntRect& aIntermediateSpace) const;
 
-  nsIntRect FrameSpaceToFilterSpace(const nsRect* aFrameSpace);
+  /**
+   * Transforms a rectangle in frame space to filter space.
+   */
+  nsIntRect FrameSpaceToFilterSpace(const nsRect* aFrameSpace) const;
 
+  /**
+   * Transforms a rectangle in filter space to frame space.
+   */
+  nsRect FilterSpaceToFrameSpace(const nsIntRect& aRect) const;
+
+  /**
+   * Compute the transformation matrix from user space to
+   * frame space in CSS pixels.
+   */
   gfxMatrix ComputeUserSpaceToFrameSpaceInCSSPxTransform();
 
   static IntRect ToIntRect(const gfxRect& rect);
@@ -210,13 +279,13 @@ private:
   gfxRect                 mTargetBBox;
 
   /**
-   * The transform from filter space to outer-<svg> device space.
+   * The transforms between filter space and outer-<svg> device space.
    */
   gfxMatrix               mFilterSpaceToDeviceSpaceTransform;
   gfxMatrix               mDeviceSpaceToFilterSpaceTransform;
 
   /**
-   * The transform from filter space to frame space, in CSS px. This
+   * The transforms between filter space and frame space, in CSS px. This
    * transform does not transform to frame space in its normal app units, since
    * app units are ints, requiring appropriate rounding which can't be done by
    * a transform matrix. Callers have to do that themselves as appropriate for
@@ -225,6 +294,9 @@ private:
   gfxMatrix               mFilterSpaceToFrameSpaceInCSSPxTransform;
   gfxMatrix               mFrameSpaceInCSSPxToFilterSpaceTransform;
 
+  /**
+   * The bounds of the filtered result, in different spaces.
+   */
   gfxRect                 mUserSpaceBounds;
   nsIntRect               mFilterSpaceBounds;
 

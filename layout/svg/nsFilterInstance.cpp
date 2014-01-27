@@ -46,12 +46,12 @@ nsFilterInstance::InfiniteIntRect()
 /**
  * Converts an nsRect that is relative to a filtered frame's origin (i.e. the
  * top-left corner of its border box) into filter space.
- * Returns the entire filter region (a rect the width/height of aFilterRes)
+ * Returns the entire filter region (a rect the width/height of aFilterRes) if
  * aFrameSpace is null or if the result is too large to be stored in an
  * nsIntRect.
  */
 nsIntRect
-nsFilterInstance::FrameSpaceToFilterSpace(const nsRect* aFrameSpace)
+nsFilterInstance::FrameSpaceToFilterSpace(const nsRect* aFrameSpace) const
 {
   if (!aFrameSpace) {
     return mFilterSpaceBounds;
@@ -131,7 +131,7 @@ nsFilterInstance::nsFilterInstance(
   // Get the app units to CSS pixels ratio.
   mAppUnitsPerCSSPx = mTargetFrame->PresContext()->AppUnitsPerCSSPixel();
 
-  // Get the user space to filter space transform.
+  // Get the user space to intermediate space transform.
   mCanvasTransform =
     nsSVGUtils::GetCanvasTM(mTargetFrame, nsISVGChildFrame::FOR_OUTERSVG_TM);
   if (mCanvasTransform.IsSingular()) {
@@ -364,8 +364,8 @@ nsFilterInstance::ComputeNeededBoxes()
 
 nsresult
 nsFilterInstance::BuildSourcePaint(SourceInfo *aSource,
-                                      gfxASurface* aTargetSurface,
-                                      DrawTarget* aTargetDT)
+                                   gfxASurface* aTargetSurface,
+                                   DrawTarget* aTargetDT)
 {
   nsIntRect neededRect = aSource->mNeededBounds;
 
@@ -428,7 +428,7 @@ nsFilterInstance::BuildSourcePaint(SourceInfo *aSource,
 
 nsresult
 nsFilterInstance::BuildSourcePaints(gfxASurface* aTargetSurface,
-                                       DrawTarget* aTargetDT)
+                                    DrawTarget* aTargetDT)
 {
   nsresult rv = NS_OK;
 
@@ -446,7 +446,7 @@ nsFilterInstance::BuildSourcePaints(gfxASurface* aTargetSurface,
 
 nsresult
 nsFilterInstance::BuildSourceImage(gfxASurface* aTargetSurface,
-                                      DrawTarget* aTargetDT)
+                                   DrawTarget* aTargetDT)
 {
   nsIntRect neededRect = mSourceGraphic.mNeededBounds;
   if (neededRect.IsEmpty()) {
@@ -526,9 +526,8 @@ nsFilterInstance::Render(gfxContext* aContext)
   nsRefPtr<gfxASurface> resultImage;
   RefPtr<DrawTarget> resultImageDT;
   if (aContext->IsCairo()) {
-    resultImage =
-      gfxPlatform::GetPlatform()->CreateOffscreenSurface(filterRect.Size(),
-                                                         GFX_CONTENT_COLOR_ALPHA);
+    resultImage = gfxPlatform::GetPlatform()->CreateOffscreenSurface(
+      filterRect.Size(), GFX_CONTENT_COLOR_ALPHA);
     if (!resultImage || resultImage->CairoStatus())
       return NS_ERROR_OUT_OF_MEMORY;
 
@@ -537,8 +536,9 @@ nsFilterInstance::Render(gfxContext* aContext)
       gfxPlatform::GetPlatform()->CreateDrawTargetForSurface(
         resultImage, ToIntSize(filterRect.Size()));
   } else {
-    resultImageDT = gfxPlatform::GetPlatform()->CreateOffscreenContentDrawTarget(
-      ToIntSize(filterRect.Size()), FORMAT_B8G8R8A8);
+    resultImageDT = 
+      gfxPlatform::GetPlatform()->CreateOffscreenContentDrawTarget(
+        ToIntSize(filterRect.Size()), FORMAT_B8G8R8A8);
   }
 
   ComputeNeededBoxes();
@@ -587,7 +587,8 @@ nsFilterInstance::ComputePostFilterDirtyRect(nsRect* aPostFilterDirtyRect)
   nsIntRegion resultChangeRegion =
     FilterSupport::ComputeResultChangeRegion(filter,
       mPreFilterDirtyRect, nsIntRegion(), nsIntRegion());
-  *aPostFilterDirtyRect = TransformFilterSpaceToFrameSpace(resultChangeRegion.GetBounds());
+  *aPostFilterDirtyRect =
+    FilterSpaceToFrameSpace(resultChangeRegion.GetBounds());
 
   return NS_OK;
 }
@@ -609,7 +610,8 @@ nsFilterInstance::ComputePostFilterExtents(nsRect* aPostFilterExtents)
   FilterDescription filter(mPrimitiveDescriptions, filterSpaceBounds);
   nsIntRegion postFilterExtents =
     FilterSupport::ComputePostFilterExtents(filter, sourceBounds);
-  *aPostFilterExtents = TransformFilterSpaceToFrameSpace(postFilterExtents.GetBounds());
+  *aPostFilterExtents =
+    FilterSpaceToFrameSpace(postFilterExtents.GetBounds());
 
   return NS_OK;
 }
@@ -620,13 +622,13 @@ nsFilterInstance::ComputeSourceNeededRect(nsRect* aDirty)
   NS_ASSERTION(mInitialized, "filter instance must be initialized");
 
   ComputeNeededBoxes();
-  *aDirty = TransformFilterSpaceToFrameSpace(mSourceGraphic.mNeededBounds);
+  *aDirty = FilterSpaceToFrameSpace(mSourceGraphic.mNeededBounds);
 
   return NS_OK;
 }
 
 nsRect
-nsFilterInstance::TransformFilterSpaceToFrameSpace(const nsIntRect& aRect) const
+nsFilterInstance::FilterSpaceToFrameSpace(const nsIntRect& aRect) const
 {
   if (aRect.IsEmpty()) {
     return nsRect();

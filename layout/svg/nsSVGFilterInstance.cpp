@@ -277,8 +277,6 @@ nsSVGFilterInstance::FilterSpaceToUserSpace(const IntRect& aFilterSpace) const
 nsresult
 nsSVGFilterInstance::BuildPrimitives()
 {
-  // TODO(mvujovic): This is wrong. We should clip all of the
-  // FilterPrimitiveDescriptions as defined by the input indices.
   ClipLastPrimitiveDescriptionByFilterRegion();
 
   // Get the filter primitive elements.
@@ -373,8 +371,10 @@ nsSVGFilterInstance::GetSourceIndices(
     sources[j].mString->GetAnimValue(str, sources[j].mElement);
 
     int32_t sourceIndex = 0;
-    if (str.EqualsLiteral("SourceGraphic")) {
-      sourceIndex = FilterPrimitiveDescription::kPrimitiveIndexSourceGraphic;
+    if (str.EqualsLiteral("SourceGraphic") || str.EqualsLiteral("")) {
+      sourceIndex = aCurrentIndex == 0 ?
+        FilterPrimitiveDescription::kPrimitiveIndexSourceGraphic :
+        aCurrentIndex - 1;
     } else if (str.EqualsLiteral("SourceAlpha")) {
       sourceIndex = FilterPrimitiveDescription::kPrimitiveIndexSourceAlpha;
     } else if (str.EqualsLiteral("FillPaint")) {
@@ -384,10 +384,6 @@ nsSVGFilterInstance::GetSourceIndices(
     } else if (str.EqualsLiteral("BackgroundImage") ||
                str.EqualsLiteral("BackgroundAlpha")) {
       return NS_ERROR_NOT_IMPLEMENTED;
-    } else if (str.EqualsLiteral("")) {
-      sourceIndex = aCurrentIndex == 0 ?
-        FilterPrimitiveDescription::kPrimitiveIndexSourceGraphic :
-        aCurrentIndex - 1;
     } else {
       bool inputExists = aImageTable.Get(str, &sourceIndex);
       if (!inputExists)

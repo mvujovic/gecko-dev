@@ -132,7 +132,8 @@ private:
    * FilterPrimitiveDescription is used.
    * 
    * If no source is specified, the previous FilterPrimitiveDescription is used
-   * as the source.
+   * as the source. If there is no previous FilterPrimitiveDescription,
+   * SourceGraphic is used.
    */
   static nsresult GetSourceIndices(
     nsSVGFE* aPrimitiveElement,
@@ -153,7 +154,7 @@ private:
 
   /**
    * Finds the last FilterPrimitiveDescription in the list and clips its
-   * filter primitive subregions to the filter region.
+   * filter primitive subregion to the filter region.
    */
   void ClipLastPrimitiveDescriptionByFilterRegion();
 

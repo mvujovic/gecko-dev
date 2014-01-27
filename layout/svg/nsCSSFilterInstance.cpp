@@ -50,7 +50,6 @@ nsCSSFilterInstance::BuildPrimitives()
   return result;  
 }
 
-// TODO(mvujovic): Don't redefine this value from SVGFEGaussianBlurElement.
 static const float kMaxStdDeviation = 500;
 
 nsresult

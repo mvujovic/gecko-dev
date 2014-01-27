@@ -22,18 +22,6 @@ using namespace mozilla;
 using namespace mozilla::dom;
 using namespace mozilla::gfx;
 
-IntRect
-nsSVGFilterInstance::ToIntRect(const gfxRect& rect)
-{
-  return IntRect(rect.X(), rect.Y(), rect.Width(), rect.Height());
-}
-
-gfxRect
-nsSVGFilterInstance::ToGfxRect(const IntRect& rect)
-{
-  return gfxRect(rect.X(), rect.Y(), rect.Width(), rect.Height());
-}
-
 // nsSVGFilterInstance
 
 nsSVGFilterInstance::nsSVGFilterInstance(
@@ -238,11 +226,6 @@ nsSVGFilterInstance::ComputeUserSpaceBounds()
 
   // Match the filter region as closely as possible to the pixel density of the
   // nearest outer 'svg' device space:
-  return RoundOutUserSpace(userSpaceBounds);
-}
-
-gfxRect nsSVGFilterInstance::RoundOutUserSpace(const gfxRect& aUserSpace) const
-{
   bool roundOut = true;
   IntRect roundedIntermediateSpaceBounds =
     UserSpaceToIntermediateSpace(aUserSpace, roundOut);
@@ -294,11 +277,13 @@ nsSVGFilterInstance::FilterSpaceToUserSpace(const IntRect& aFilterSpace) const
 nsresult
 nsSVGFilterInstance::BuildPrimitives()
 {
+  // TODO(mvujovic): This is wrong. We should clip all of the
+  // FilterPrimitiveDescriptions as defined by the input indices.
   ClipLastPrimitiveDescriptionByFilterRegion();
 
   // Get the filter primitive elements.
   nsTArray<nsRefPtr<nsSVGFE> > primitiveElements;
-  GetFilterPrimitiveElements(mFilterElement, primitiveElements);
+  GetFilterPrimitiveElements(primitiveElements);
 
   // Maps source image name to source index.
   nsDataHashtable<nsStringHashKey, int32_t> imageTable(10);
@@ -361,7 +346,6 @@ nsSVGFilterInstance::BuildPrimitives()
 
 void
 nsSVGFilterInstance::GetFilterPrimitiveElements(
-    const SVGFilterElement* aFilterElement, 
     nsTArray<nsRefPtr<nsSVGFE> >& aPrimitives) {
   for (nsIContent* child = aFilterElement->nsINode::GetFirstChild();
        child;
@@ -480,4 +464,16 @@ nsSVGFilterInstance::ClipLastPrimitiveDescriptionByFilterRegion()
   primitiveSubregion =
     primitiveSubregion.Intersect(mIntermediateSpaceBounds);
   descr.SetPrimitiveSubregion(primitiveSubregion);
+}
+
+IntRect
+nsSVGFilterInstance::ToIntRect(const gfxRect& rect)
+{
+  return IntRect(rect.X(), rect.Y(), rect.Width(), rect.Height());
+}
+
+gfxRect
+nsSVGFilterInstance::ToGfxRect(const IntRect& rect)
+{
+  return gfxRect(rect.X(), rect.Y(), rect.Width(), rect.Height());
 }

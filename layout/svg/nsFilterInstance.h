@@ -35,10 +35,9 @@ class nsSVGFilterPaintCallback;
  *
  * Definition of "filter space": filter space is a coordinate system that is
  * aligned with the user space of the filtered element, with its origin located
- * at the top left of the filter region (as specified by our ctor's
- * aFilterRegion, and returned by our GetFilterRegion, specifically), and with
- * one unit equal in size to one pixel of the offscreen surface into which the
- * filter output would/will be painted.
+ * at the top left of the filter region, and with one unit equal in size to one
+ * pixel of the offscreen surface into which the filter output would/will be
+ * painted.
  *
  * The definition of "filter region" can be found here:
  * http://www.w3.org/TR/SVG11/filters.html#FilterEffectsRegion

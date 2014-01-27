@@ -26,6 +26,14 @@ class SVGFilterElement;
 }
 }
 
+/**
+ * This class helps nsFilterInstance build its filter graph.
+ * This class processes a reference to an SVG <filter> element.
+ * It iterates through the referenced <filter> element's primitive elements,
+ * creating a FilterPrimitiveDescription for each one.
+ * It appends the new FilterPrimitiveDescription(s) to the list of 
+ * FilterPrimitiveDescriptions passed into the constructor.
+ */
 class nsSVGFilterInstance
 {
   typedef mozilla::dom::SVGFilterElement SVGFilterElement;
@@ -74,25 +82,79 @@ private:
    */
   float GetPrimitiveNumber(uint8_t aCtxType, float aValue) const;
 
+  /**
+   * Gets the frame of the corresponding <filter> element.
+   */
   nsSVGFilterFrame* GetFilterFrame();
+
+  /**
+   * Computes the SVG filter region in user space.
+   *
+   * The definition of "filter region" can be found here:
+   * http://www.w3.org/TR/SVG11/filters.html#FilterEffectsRegion
+   */
   gfxRect ComputeUserSpaceBounds();
+
+  /**
+   * Transforms a rectangle in user space to intermediate space.
+   */
   IntRect UserSpaceToIntermediateSpace(
     const gfxRect& aUserSpace, bool aRoundOut = false) const;
+
+  /**
+   * Transforms a rectangle in intermediate space to user space.
+   */
   gfxRect IntermediateSpaceToUserSpace(
     const IntRect& aIntermediateSpace) const;
-  gfxRect RoundOutUserSpace(const gfxRect& aUserSpace) const;
+
+  /**
+   * Iterates through the <filter> element's primitive elements,
+   * creating a FilterPrimitiveDescription for each one.
+   * Appends the new FilterPrimitiveDescription(s) to the list of 
+   * FilterPrimitiveDescriptions passed into the constructor.
+   */
   nsresult BuildPrimitives();
-  void GetFilterPrimitiveElements(
-    const SVGFilterElement* aFilterElement, 
-    nsTArray<nsRefPtr<nsSVGFE> >& aPrimitives);
+
+  /**
+   * Gets the children of the <filter> element (filter primitive elements).
+   */
+  void GetFilterPrimitiveElements(nsTArray<nsRefPtr<nsSVGFE> >& aPrimitives);
+
+  /**
+   * Gets the indices of the FilterPrimitiveDescription(s) or predefined sources
+   * that feed into a filter primitive element.
+   * 
+   * Predefined sources include SourceGraphic, SourceAlpha, FillPaint, etc.
+   * (e.g. <feGaussianBlur in="SourceGraphic" result="blur-result" ...>).
+   *
+   * If another filter primitive element is specified as the source
+   * (e.g. <feColorMatrix in="blur-result" ...>), the index corresponding to its
+   * FilterPrimitiveDescription is used.
+   * 
+   * If no source is specified, the previous FilterPrimitiveDescription is used
+   * as the source.
+   */
   static nsresult GetSourceIndices(
     nsSVGFE* aPrimitiveElement,
     int32_t aCurrentIndex,
     const nsDataHashtable<nsStringHashKey, int32_t>& aImageTable,
     nsTArray<int32_t>& aSourceIndices);
+
+  /**
+   * Computes the filter primitive subregion for a filter primitive element,
+   * in intermediate space.
+   *
+   * The definition of "filter primitive subregion" can be found here:
+   * http://dev.w3.org/fxtf/filters/#FilterPrimitiveSubRegion
+   */
   IntRect ComputeIntermediateSpacePrimitiveSubregion(
     nsSVGFE* aPrimitiveElement,
     const nsTArray<int32_t>& aInputIndices);
+
+  /**
+   * Finds the last FilterPrimitiveDescription in the list and clips its
+   * filter primitive subregions to the filter region.
+   */
   void ClipLastPrimitiveDescriptionByFilterRegion();
 
   static IntRect ToIntRect(const gfxRect& rect);
@@ -108,6 +170,10 @@ private:
   nsSVGFilterFrame* mFilterFrame;
   const SVGFilterElement* mFilterElement;
   gfxMatrix mCanvasTransform;
+
+  /**
+   * The bounds of the <filter> element's result, in different spaces.
+   */
   gfxRect mUserSpaceBounds;
   IntRect mIntermediateSpaceBounds;
   IntRect mFilterSpaceBounds;

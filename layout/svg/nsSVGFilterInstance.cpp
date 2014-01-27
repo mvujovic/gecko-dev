@@ -228,7 +228,7 @@ nsSVGFilterInstance::ComputeUserSpaceBounds()
   // nearest outer 'svg' device space:
   bool roundOut = true;
   IntRect roundedIntermediateSpaceBounds =
-    UserSpaceToIntermediateSpace(aUserSpace, roundOut);
+    UserSpaceToIntermediateSpace(userSpaceBounds, roundOut);
   gfxRect roundedUserSpaceBounds =
     IntermediateSpaceToUserSpace(roundedIntermediateSpaceBounds);
   return roundedUserSpaceBounds;
@@ -347,7 +347,7 @@ nsSVGFilterInstance::BuildPrimitives()
 void
 nsSVGFilterInstance::GetFilterPrimitiveElements(
     nsTArray<nsRefPtr<nsSVGFE> >& aPrimitives) {
-  for (nsIContent* child = aFilterElement->nsINode::GetFirstChild();
+  for (nsIContent* child = mFilterElement->nsINode::GetFirstChild();
        child;
        child = child->GetNextSibling()) {
     nsRefPtr<nsSVGFE> primitive;

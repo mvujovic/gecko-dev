@@ -274,10 +274,10 @@ nsFilterInstance::ComputeOverallFilterMetrics()
   intermediateSpaceBounds.UnionRect(intermediateSpaceBounds,
                                     sourceIntermediateSpaceBounds);
 
-  // Compute filter region.
+  // Compute user space bounds.
   mUserSpaceBounds = IntermediateSpaceToUserSpace(intermediateSpaceBounds);
 
-  // Compute final filter space bounds.
+  // Compute filter space bounds.
   nsIntPoint filterSpaceOffset = intermediateSpaceBounds.TopLeft();
   IntPoint translation = -IntPoint(filterSpaceOffset.x, filterSpaceOffset.y);
   TranslatePrimitiveSubregions(translation);

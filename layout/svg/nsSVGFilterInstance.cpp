@@ -402,8 +402,8 @@ nsSVGFilterInstance::GetSourceIndices(
         for (int32_t i = 0; i < 3; i++) {
           AttributeMap functionAttributes;
           functionAttributes.Set(eComponentTransferFunctionType, (uint32_t)SVG_FECOMPONENTTRANSFER_TYPE_TABLE);            
-          float tableValues = 0.0;
-          functionAttributes.Set(eComponentTransferFunctionTableValues, &tableValues, 1);
+          float tableValues[2] = {0.0, 0.0};
+          functionAttributes.Set(eComponentTransferFunctionTableValues, tableValues, 2);
           descr.Attributes().Set(attributeNames[i], functionAttributes);
         }
 

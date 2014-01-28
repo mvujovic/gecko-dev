@@ -158,6 +158,15 @@ private:
    */
   void ClipLastPrimitiveDescriptionByFilterRegion();
 
+  /**
+   * Appends a new FilterPrimitiveDescription to the
+   * FilterPrimitiveDescription(s) list that converts the last result into
+   * a SourceAlpha input for the next FilterPrimitiveDescription.
+   *
+   * This zeros out the RGB channels and keeps the alpha channel.
+   */
+  void AppendAlphaConversionPrimitiveDescription();
+
   static IntRect ToIntRect(const gfxRect& rect);
   static gfxRect ToGfxRect(const IntRect& rect);
 

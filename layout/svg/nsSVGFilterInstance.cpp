@@ -27,11 +27,14 @@ using namespace mozilla::gfx;
 nsSVGFilterInstance::nsSVGFilterInstance(
   nsIFrame* aTargetFrame,
   const gfxRect& aTargetBBox,
+  const gfxMatrix& aUserSpaceToIntermediateSpaceTransform,
   const nsStyleFilter& aFilter,
   nsTArray<FilterPrimitiveDescription>& aPrimitiveDescriptions,
   nsTArray<mozilla::RefPtr<SourceSurface>>& aInputImages) :
     mTargetFrame(aTargetFrame),
     mTargetBBox(aTargetBBox),
+    mUserSpaceToIntermediateSpaceTransform(
+      aUserSpaceToIntermediateSpaceTransform),
     mFilter(aFilter),
     mPrimitiveDescriptions(aPrimitiveDescriptions),
     mInputImages(aInputImages),
@@ -51,15 +54,13 @@ nsSVGFilterInstance::nsSVGFilterInstance(
   }
 
   // Get the primitive units.
-  mPrimitiveUnits = mFilterFrame->GetEnumValue(SVGFilterElement::PRIMITIVEUNITS);
+  mPrimitiveUnits =
+    mFilterFrame->GetEnumValue(SVGFilterElement::PRIMITIVEUNITS);
 
-  // Get the user space to filter space transform.
-  mCanvasTransform =
-    nsSVGUtils::GetCanvasTM(mTargetFrame, nsISVGChildFrame::FOR_OUTERSVG_TM);
-  if (mCanvasTransform.IsSingular()) {
-    // Nothing to draw.
-    return;
-  }
+  // Compute the intermediate space to user space transform.
+  mIntermediateSpaceToUserSpaceTransform =
+    mUserSpaceToIntermediateSpaceTransform;
+  mIntermediateSpaceToUserSpaceTransform.Invert();
 
   // Compute the filter region (in various spaces).
   mUserSpaceBounds = ComputeUserSpaceBounds();
@@ -238,27 +239,23 @@ IntRect
 nsSVGFilterInstance::UserSpaceToIntermediateSpace(
   const gfxRect& aUserSpace, bool aRoundOut) const
 {
-  NS_ASSERTION(!mCanvasTransform.IsSingular(),
-    "we shouldn't be doing anything if canvas transform is singular");
-
-  gfxRect filterSpace = aUserSpace;
-  gfxSize scale = mCanvasTransform.ScaleFactors(true);
-  filterSpace.Scale(scale.width, scale.height);
-  if (aRoundOut)
-    filterSpace.RoundOut();
-  return ToIntRect(filterSpace);
+  gfxRect userSpace = aUserSpace;
+  gfxRect intermediateSpace =
+    mUserSpaceToIntermediateSpaceTransform.TransformBounds(userSpace);
+  if (aRoundOut) {
+    intermediateSpace.RoundOut();
+  }
+  // TODO(mvujovic): Check for float to int overflow?
+  return ToIntRect(intermediateSpace);
 }
 
 gfxRect
 nsSVGFilterInstance::IntermediateSpaceToUserSpace(
   const IntRect& aIntermediateSpace) const
 {
-  NS_ASSERTION(!mCanvasTransform.IsSingular(),
-    "we shouldn't be doing anything if canvas transform is singular");
-
-  gfxRect userSpace = ToGfxRect(aIntermediateSpace);
-  gfxSize scale = mCanvasTransform.ScaleFactors(true);
-  userSpace.Scale(1.0 / scale.width, 1.0 / scale.height);
+  gfxRect intermediateSpace = ToGfxRect(aIntermediateSpace);
+  gfxRect userSpace =
+    mIntermediateSpaceToUserSpaceTransform.TransformBounds(intermediateSpace);
   return userSpace;
 }
 
@@ -271,7 +268,8 @@ nsSVGFilterInstance::UserSpaceToFilterSpace(const gfxRect& aUserSpace) const
 gfxRect
 nsSVGFilterInstance::FilterSpaceToUserSpace(const IntRect& aFilterSpace) const
 {
-  return IntermediateSpaceToUserSpace(aFilterSpace) + mUserSpaceBounds.TopLeft();
+  return IntermediateSpaceToUserSpace(aFilterSpace) +
+    mUserSpaceBounds.TopLeft();
 }
 
 nsresult

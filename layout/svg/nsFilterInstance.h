@@ -112,8 +112,8 @@ public:
    * Sets the aDirty outparam to the pre-filter bounds in frame space of the
    * area of mTargetFrame that is needed in order to paint the filtered output
    * for a given post-filter dirtied area. The post-filter area must have been
-   * specified before calling this method by passing it as the aPostFilterDirtyRect
-   * argument to the nsFilterInstance constructor.
+   * specified before calling this method by passing it as the
+   * aPostFilterDirtyRect argument to the nsFilterInstance constructor.
    */
   nsresult ComputeSourceNeededRect(nsRect* aDirty);
 
@@ -243,7 +243,8 @@ private:
   /**
    * Transforms a rectangle in intermediate space to user space.
    */
-  gfxRect IntermediateSpaceToUserSpace(const nsIntRect& aIntermediateSpace) const;
+  gfxRect IntermediateSpaceToUserSpace(
+    const nsIntRect& aIntermediateSpace) const;
 
   /**
    * Transforms a rectangle in frame space to filter space.

@@ -101,8 +101,8 @@ nsFilterInstance::ComputeUserSpaceToFrameSpaceInCSSPxTransform()
           PrependLocalTransformsTo(gfxMatrix());
     } else {
       gfxPoint targetsUserSpaceOffset =
-        nsLayoutUtils::RectToGfxRect(mTargetFrame->GetRect(), mAppUnitsPerCSSPx).
-                         TopLeft();
+        nsLayoutUtils::RectToGfxRect(mTargetFrame->GetRect(),
+                                     mAppUnitsPerCSSPx).TopLeft();
       userToFrameSpaceInCSSPx.Translate(-targetsUserSpaceOffset);
     }
   }
@@ -230,11 +230,13 @@ nsFilterInstance::BuildPrimitivesForFilter(const nsStyleFilter& filter)
 {
   nsresult result = NS_ERROR_FAILURE;
   if (filter.GetType() == NS_STYLE_FILTER_URL) {
-    nsSVGFilterInstance svgFilterInstance(mTargetFrame,
-                                          mTargetBBox,
-                                          filter,
-                                          mPrimitiveDescriptions,
-                                          mInputImages);
+    nsSVGFilterInstance svgFilterInstance(
+      mTargetFrame,
+      mTargetBBox,
+      mUserSpaceToIntermediateSpaceTransform,
+      filter,
+      mPrimitiveDescriptions,
+      mInputImages);
     result = svgFilterInstance.IsInitialized() ? NS_OK : NS_ERROR_FAILURE;
   } else {
     nsCSSFilterInstance cssFilterInstance(filter, mPrimitiveDescriptions);
@@ -428,7 +430,8 @@ nsFilterInstance::BuildSourcePaint(SourceInfo *aSource,
 
   if (offscreenSurface) {
     aSource->mSourceSurface =
-      gfxPlatform::GetPlatform()->GetSourceSurfaceForSurface(aTargetDT, offscreenSurface);
+      gfxPlatform::GetPlatform()->GetSourceSurfaceForSurface(aTargetDT,
+                                                             offscreenSurface);
   } else {
     aSource->mSourceSurface = offscreenDT->Snapshot();
   }
@@ -512,7 +515,8 @@ nsFilterInstance::BuildSourceImage(gfxASurface* aTargetSurface,
 
   if (offscreenSurface) {
     sourceGraphicSource =
-      gfxPlatform::GetPlatform()->GetSourceSurfaceForSurface(aTargetDT, offscreenSurface);
+      gfxPlatform::GetPlatform()->GetSourceSurfaceForSurface(aTargetDT,
+                                                             offscreenSurface);
   } else {
     sourceGraphicSource = offscreenDT->Snapshot();
   }

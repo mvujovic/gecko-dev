@@ -46,6 +46,7 @@ public:
   nsSVGFilterInstance(
     nsIFrame* aTargetFrame,
     const gfxRect& aTargetBBox,
+    const gfxMatrix& aUserSpaceToIntermediateSpaceTransform,
     const nsStyleFilter& aFilter,
     nsTArray<FilterPrimitiveDescription>& aPrimitiveDescriptions,
     nsTArray<mozilla::RefPtr<SourceSurface>>& aInputImages);
@@ -172,6 +173,13 @@ private:
 
   nsIFrame* mTargetFrame;
   gfxRect mTargetBBox;
+
+  /**
+   * The transforms between user space and intermediate space.
+   */
+  gfxMatrix mUserSpaceToIntermediateSpaceTransform;
+  gfxMatrix mIntermediateSpaceToUserSpaceTransform;
+
   nsStyleFilter mFilter;
   nsTArray<FilterPrimitiveDescription>& mPrimitiveDescriptions;
   nsTArray<mozilla::RefPtr<SourceSurface>>& mInputImages;
@@ -179,7 +187,6 @@ private:
 
   nsSVGFilterFrame* mFilterFrame;
   const SVGFilterElement* mFilterElement;
-  gfxMatrix mCanvasTransform;
 
   /**
    * The bounds of the <filter> element's result, in different spaces.

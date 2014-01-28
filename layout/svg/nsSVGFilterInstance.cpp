@@ -222,7 +222,7 @@ nsSVGFilterInstance::ComputeUserSpaceBounds()
   uint16_t filterUnits = 
     mFilterFrame->GetEnumValue(SVGFilterElement::FILTERUNITS);
   gfxRect userSpaceBounds = 
-    nsSVGUtils::GetRelativeRect(filterUnits, XYWH, mTargetBBox, mFilterFrame);
+    nsSVGUtils::GetRelativeRect(filterUnits, XYWH, mTargetBBox, mTargetFrame);
 
   // Match the filter region as closely as possible to the pixel density of the
   // nearest outer 'svg' device space:

@@ -135,9 +135,9 @@ private:
    * as the source. If there is no previous FilterPrimitiveDescription,
    * SourceGraphic is used.
    */
-  static nsresult GetSourceIndices(
+  nsresult GetSourceIndices(
     nsSVGFE* aPrimitiveElement,
-    int32_t aCurrentIndex,
+    uint32_t& aCurrentIndex,
     const nsDataHashtable<nsStringHashKey, int32_t>& aImageTable,
     nsTArray<int32_t>& aSourceIndices);
 

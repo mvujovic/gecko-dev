@@ -359,7 +359,7 @@ nsSVGFilterInstance::GetFilterPrimitiveElements(
 nsresult
 nsSVGFilterInstance::GetSourceIndices(
   nsSVGFE* aPrimitiveElement,
-  int32_t aCurrentIndex,
+  uint32_t& aCurrentIndex,
   const nsDataHashtable<nsStringHashKey, int32_t>& aImageTable,
   nsTArray<int32_t>& aSourceIndices)
 {
@@ -372,11 +372,50 @@ nsSVGFilterInstance::GetSourceIndices(
 
     int32_t sourceIndex = 0;
     if (str.EqualsLiteral("SourceGraphic") || str.EqualsLiteral("")) {
-      sourceIndex = aCurrentIndex == 0 ?
-        FilterPrimitiveDescription::kPrimitiveIndexSourceGraphic :
-        aCurrentIndex - 1;
+      if (aCurrentIndex == 0) {
+        sourceIndex = FilterPrimitiveDescription::kPrimitiveIndexSourceGraphic;
+      } else {
+        sourceIndex = aCurrentIndex - 1;
+      }
     } else if (str.EqualsLiteral("SourceAlpha")) {
-      sourceIndex = FilterPrimitiveDescription::kPrimitiveIndexSourceAlpha;
+      if (aCurrentIndex == 0) {
+        sourceIndex = FilterPrimitiveDescription::kPrimitiveIndexSourceAlpha;
+      } else {
+        FilterPrimitiveDescription descr(FilterPrimitiveDescription::eComponentTransfer);
+        
+        uint32_t lastPrimitiveDescrIndex = aCurrentIndex - 1;
+        const FilterPrimitiveDescription& lastPrimitiveDescr = mPrimitiveDescriptions[lastPrimitiveDescrIndex];
+        ColorSpace lastColorSpace = lastPrimitiveDescr.OutputColorSpace();
+
+        descr.SetPrimitiveSubregion(lastPrimitiveDescr.PrimitiveSubregion());
+        descr.SetInputPrimitive(0, lastPrimitiveDescrIndex);
+        descr.SetInputColorSpace(0, lastColorSpace);
+        descr.SetOutputColorSpace(lastColorSpace);
+
+        static const AttributeName attributeNames[4] = {
+          eComponentTransferFunctionR,
+          eComponentTransferFunctionG,
+          eComponentTransferFunctionB
+        };
+
+        // Zero out the RGB channels to black.
+        for (int32_t i = 0; i < 3; i++) {
+          AttributeMap functionAttributes;
+          functionAttributes.Set(eComponentTransferFunctionType, (uint32_t)SVG_FECOMPONENTTRANSFER_TYPE_TABLE);            
+          float tableValues = 0.0;
+          functionAttributes.Set(eComponentTransferFunctionTableValues, &tableValues, 1);
+          descr.Attributes().Set(attributeNames[i], functionAttributes);
+        }
+
+        // Keep the alpha channel untouched.
+        AttributeMap functionAttributes;
+        functionAttributes.Set(eComponentTransferFunctionType, (uint32_t)SVG_FECOMPONENTTRANSFER_TYPE_IDENTITY);
+        descr.Attributes().Set(eComponentTransferFunctionA, functionAttributes);
+
+        mPrimitiveDescriptions.AppendElement(descr);
+        sourceIndex = aCurrentIndex;
+        aCurrentIndex++;
+      }
     } else if (str.EqualsLiteral("FillPaint")) {
       sourceIndex = FilterPrimitiveDescription::kPrimitiveIndexFillPaint;
     } else if (str.EqualsLiteral("StrokePaint")) {
@@ -390,7 +429,7 @@ nsSVGFilterInstance::GetSourceIndices(
         return NS_ERROR_FAILURE;
     }
 
-    MOZ_ASSERT(sourceIndex < aCurrentIndex);
+    MOZ_ASSERT(sourceIndex < (int32_t)aCurrentIndex);
     aSourceIndices.AppendElement(sourceIndex);
   }
   return NS_OK;

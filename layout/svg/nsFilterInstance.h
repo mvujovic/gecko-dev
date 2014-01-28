@@ -268,20 +268,26 @@ private:
   /**
    * The frame for the element that is currently being filtered.
    */
-  nsIFrame*               mTargetFrame;
+  nsIFrame* mTargetFrame;
 
   nsSVGFilterPaintCallback* mPaintCallback;
 
   /**
    * The SVG bbox of the element that is being filtered, in user space.
    */
-  gfxRect                 mTargetBBox;
+  gfxRect mTargetBBox;
+
+  /**
+   * The transforms between user space and intermediate space.
+   */
+  gfxMatrix mUserSpaceToIntermediateSpaceTransform;
+  gfxMatrix mIntermediateSpaceToUserSpaceTransform;
 
   /**
    * The transforms between filter space and outer-<svg> device space.
    */
-  gfxMatrix               mFilterSpaceToDeviceSpaceTransform;
-  gfxMatrix               mDeviceSpaceToFilterSpaceTransform;
+  gfxMatrix mFilterSpaceToDeviceSpaceTransform;
+  gfxMatrix mDeviceSpaceToFilterSpaceTransform;
 
   /**
    * The transforms between filter space and frame space, in CSS px. This
@@ -290,27 +296,27 @@ private:
    * a transform matrix. Callers have to do that themselves as appropriate for
    * their needs.
    */
-  gfxMatrix               mFilterSpaceToFrameSpaceInCSSPxTransform;
-  gfxMatrix               mFrameSpaceInCSSPxToFilterSpaceTransform;
+  gfxMatrix mFilterSpaceToFrameSpaceInCSSPxTransform;
+  gfxMatrix mFrameSpaceInCSSPxToFilterSpaceTransform;
 
   /**
    * The bounds of the filtered result, in different spaces.
    */
-  gfxRect                 mUserSpaceBounds;
-  nsIntRect               mFilterSpaceBounds;
+  gfxRect mUserSpaceBounds;
+  nsIntRect mFilterSpaceBounds;
 
   /**
    * Pre-filter paint bounds of the element that is being filtered, in filter
    * space.
    */
-  nsIntRect               mTargetBounds;
+  nsIntRect mTargetBounds;
 
   /**
    * If set, this is the filter space bounds of the outer-<svg> device space
    * bounds of the dirty area that needs to be repainted. (As bounds-of-bounds,
    * this may be a fair bit bigger than we actually need, unfortunately.)
    */
-  nsIntRect               mPostFilterDirtyRect;
+  nsIntRect mPostFilterDirtyRect;
 
   /**
    * If set, this is the filter space bounds of the outer-<svg> device bounds
@@ -318,19 +324,18 @@ private:
    * bounds-of-bounds, this may be a fair bit bigger than we actually need,
    * unfortunately.)
    */
-  nsIntRect               mPreFilterDirtyRect;
+  nsIntRect mPreFilterDirtyRect;
 
-  uint32_t                mAppUnitsPerCSSPx;
+  uint32_t mAppUnitsPerCSSPx;
 
-  SourceInfo              mSourceGraphic;
-  SourceInfo              mFillPaint;
-  SourceInfo              mStrokePaint;
-  nsIFrame*               mTransformRoot;
+  SourceInfo mSourceGraphic;
+  SourceInfo mFillPaint;
+  SourceInfo mStrokePaint;
+  nsIFrame* mTransformRoot;
   nsTArray<mozilla::RefPtr<SourceSurface>> mInputImages;
   nsTArray<FilterPrimitiveDescription> mPrimitiveDescriptions;
 
   nsTArray<nsStyleFilter> mFilters;
-  gfxMatrix mCanvasTransform;
   bool mInitialized;
 };
 

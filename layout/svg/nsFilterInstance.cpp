@@ -132,12 +132,18 @@ nsFilterInstance::nsFilterInstance(
   mAppUnitsPerCSSPx = mTargetFrame->PresContext()->AppUnitsPerCSSPixel();
 
   // Get the user space to intermediate space transform.
-  mCanvasTransform =
+  gfxMatrix canvasTransform =
     nsSVGUtils::GetCanvasTM(mTargetFrame, nsISVGChildFrame::FOR_OUTERSVG_TM);
-  if (mCanvasTransform.IsSingular()) {
+  if (canvasTransform.IsSingular()) {
     // Nothing to draw.
     return;
   }
+
+  gfxSize scale = canvasTransform.ScaleFactors(true);
+  mUserSpaceToIntermediateSpaceTransform.Scale(scale.width, scale.height);
+  mIntermediateSpaceToUserSpaceTransform =
+    mUserSpaceToIntermediateSpaceTransform;
+  mIntermediateSpaceToUserSpaceTransform.Invert();
 
   nsresult rv = BuildPrimitives();
   if (NS_FAILED(rv)) {
@@ -165,33 +171,27 @@ nsIntRect
 nsFilterInstance::UserSpaceToIntermediateSpace(const gfxRect& aUserSpace,
                                                bool* aOverflow) const
 {
-  NS_ASSERTION(!mCanvasTransform.IsSingular(),
-    "we shouldn't be doing anything if canvas transform is singular");
-
-  gfxRect filterSpace = aUserSpace;
-  gfxSize scale = mCanvasTransform.ScaleFactors(true);
-  filterSpace.Scale(scale.width, scale.height);
-  filterSpace.RoundOut();
+  gfxRect intermediateSpace =
+    mUserSpaceToIntermediateSpaceTransform.TransformBounds(aUserSpace);
+  intermediateSpace.RoundOut();
 
   // Detect possible float->int overflow.
-  nsIntRect filterSpaceInt;
-  bool overflow = !gfxUtils::GfxRectToIntRect(filterSpace, &filterSpaceInt);
+  nsIntRect intermediateSpaceInt;
+  bool overflow =
+    !gfxUtils::GfxRectToIntRect(intermediateSpace, &intermediateSpaceInt);
   if (aOverflow) {
     *aOverflow = overflow;
   }
-  return overflow ? nsIntRect() : filterSpaceInt;
+  return overflow ? nsIntRect() : intermediateSpaceInt;
 }
 
 gfxRect
 nsFilterInstance::IntermediateSpaceToUserSpace(
   const nsIntRect& aIntermediateSpace) const
 {
-  NS_ASSERTION(!mCanvasTransform.IsSingular(),
-    "we shouldn't be doing anything if canvas transform is singular");
-
-  gfxRect userSpace = ToGfxRect(aIntermediateSpace);
-  gfxSize scale = mCanvasTransform.ScaleFactors(true);
-  userSpace.Scale(1.0 / scale.width, 1.0 / scale.height);
+  gfxRect intermediateSpace = ToGfxRect(aIntermediateSpace);
+  gfxRect userSpace =
+    mIntermediateSpaceToUserSpaceTransform.TransformBounds(intermediateSpace);
   return userSpace;
 }
 
@@ -273,6 +273,17 @@ nsFilterInstance::ComputeOverallFilterMetrics()
 
   intermediateSpaceBounds.UnionRect(intermediateSpaceBounds,
                                     sourceIntermediateSpaceBounds);
+
+  // TODO(mvujovic): Finish.
+  // gfxSize filterSize = intermediateSpaceBounds.Size();
+  // gfxSize surfaceSize = nsSVGUtils::ConvertToSurfaceSize(filterSize, &overflow);
+  // if (overflow || surfaceSize.width <= 0 || surfaceSize.height <= 0) {
+  //   return NS_ERROR_FAILURE;
+  // }
+
+  // if (filterSize != surfaceSize) {
+
+  // }
 
   // Compute user space bounds.
   mUserSpaceBounds = IntermediateSpaceToUserSpace(intermediateSpaceBounds);

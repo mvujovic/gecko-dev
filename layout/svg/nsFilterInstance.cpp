@@ -276,16 +276,10 @@ nsFilterInstance::ComputeOverallFilterMetrics()
   intermediateSpaceBounds.UnionRect(intermediateSpaceBounds,
                                     sourceIntermediateSpaceBounds);
 
-  // TODO(mvujovic): Finish.
-  // gfxSize filterSize = intermediateSpaceBounds.Size();
-  // gfxSize surfaceSize = nsSVGUtils::ConvertToSurfaceSize(filterSize, &overflow);
-  // if (overflow || surfaceSize.width <= 0 || surfaceSize.height <= 0) {
-  //   return NS_ERROR_FAILURE;
-  // }
-
-  // if (filterSize != surfaceSize) {
-
-  // }
+  nsSVGUtils::ConvertToSurfaceSize(intermediateSpaceBounds.Size(), &overflow);
+  if (overflow) {
+    return NS_ERROR_FAILURE;
+  }
 
   // Compute user space bounds.
   mUserSpaceBounds = IntermediateSpaceToUserSpace(intermediateSpaceBounds);

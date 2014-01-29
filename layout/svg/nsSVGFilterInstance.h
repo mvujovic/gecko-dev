@@ -137,6 +137,7 @@ private:
   nsresult GetSourceIndices(
     nsSVGFE* aPrimitiveElement,
     uint32_t& aCurrentIndex,
+    int32_t aSourceGraphicIndex,
     const nsDataHashtable<nsStringHashKey, int32_t>& aImageTable,
     nsTArray<int32_t>& aSourceIndices);
 

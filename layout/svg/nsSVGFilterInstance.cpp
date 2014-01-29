@@ -274,8 +274,13 @@ nsSVGFilterInstance::BuildPrimitives()
   // Maps source image name to source index.
   nsDataHashtable<nsStringHashKey, int32_t> imageTable(10);
 
+  uint32_t numPrimitiveDescriptions = mPrimitiveDescriptions.Length();
+  int32_t sourceGraphicIndex = numPrimitiveDescriptions > 0 ?
+    (int32_t)numPrimitiveDescriptions - 1 :
+    FilterPrimitiveDescription::kPrimitiveIndexSourceGraphic;
+
   for (uint32_t primitiveElementIndex = 0,
-       primitiveDescriptionIndex = mPrimitiveDescriptions.Length();
+       primitiveDescriptionIndex = numPrimitiveDescriptions;
        primitiveElementIndex < primitiveElements.Length();
        primitiveElementIndex++,
        primitiveDescriptionIndex++) {
@@ -284,6 +289,7 @@ nsSVGFilterInstance::BuildPrimitives()
     nsAutoTArray<int32_t,2> sourceIndices;
     nsresult rv = GetSourceIndices(primitiveElement,
                                    primitiveDescriptionIndex,
+                                   sourceGraphicIndex,
                                    imageTable,
                                    sourceIndices);
     if (NS_FAILED(rv)) {
@@ -348,6 +354,7 @@ nsresult
 nsSVGFilterInstance::GetSourceIndices(
   nsSVGFE* aPrimitiveElement,
   uint32_t& aCurrentIndex,
+  int32_t aSourceGraphicIndex,
   const nsDataHashtable<nsStringHashKey, int32_t>& aImageTable,
   nsTArray<int32_t>& aSourceIndices)
 {
@@ -359,12 +366,8 @@ nsSVGFilterInstance::GetSourceIndices(
     sources[j].mString->GetAnimValue(str, sources[j].mElement);
 
     int32_t sourceIndex = 0;
-    if (str.EqualsLiteral("SourceGraphic") || str.EqualsLiteral("")) {
-      if (aCurrentIndex == 0) {
-        sourceIndex = FilterPrimitiveDescription::kPrimitiveIndexSourceGraphic;
-      } else {
-        sourceIndex = aCurrentIndex - 1;
-      }
+    if (str.EqualsLiteral("SourceGraphic")) {
+        sourceIndex = aSourceGraphicIndex;
     } else if (str.EqualsLiteral("SourceAlpha")) {
       if (aCurrentIndex == 0) {
         sourceIndex = FilterPrimitiveDescription::kPrimitiveIndexSourceAlpha;
@@ -380,6 +383,10 @@ nsSVGFilterInstance::GetSourceIndices(
     } else if (str.EqualsLiteral("BackgroundImage") ||
                str.EqualsLiteral("BackgroundAlpha")) {
       return NS_ERROR_NOT_IMPLEMENTED;
+    } else if (str.EqualsLiteral("")) {
+      sourceIndex = aCurrentIndex == 0 ?
+        FilterPrimitiveDescription::kPrimitiveIndexSourceGraphic :
+        aCurrentIndex - 1;
     } else {
       bool inputExists = aImageTable.Get(str, &sourceIndex);
       if (!inputExists)

@@ -99,14 +99,12 @@ private:
   /**
    * Transforms a rectangle in user space to intermediate space.
    */
-  IntRect UserSpaceToIntermediateSpace(
-    const gfxRect& aUserSpace, bool aRoundOut = false) const;
+  IntRect UserSpaceToIntermediateSpace(const gfxRect& aUserSpace) const;
 
   /**
    * Transforms a rectangle in intermediate space to user space.
    */
-  gfxRect IntermediateSpaceToUserSpace(
-    const IntRect& aIntermediateSpace) const;
+  gfxRect IntermediateSpaceToUserSpace(const IntRect& aIntermediateSpace) const;
 
   /**
    * Iterates through the <filter> element's primitive elements,
@@ -168,8 +166,11 @@ private:
    */
   void AppendAlphaConversionPrimitiveDescription();
 
-  static IntRect ToIntRect(const gfxRect& rect);
+  /**
+   * Rect helpers.
+   */
   static gfxRect ToGfxRect(const IntRect& rect);
+  static IntRect ToIntRect(const nsIntRect& rect);
 
   nsIFrame* mTargetFrame;
   gfxRect mTargetBBox;

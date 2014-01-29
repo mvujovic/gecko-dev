@@ -227,9 +227,8 @@ nsSVGFilterInstance::ComputeUserSpaceBounds()
 
   // Match the filter region as closely as possible to the pixel density of the
   // nearest outer 'svg' device space:
-  bool roundOut = true;
   IntRect roundedIntermediateSpaceBounds =
-    UserSpaceToIntermediateSpace(userSpaceBounds, roundOut);
+    UserSpaceToIntermediateSpace(userSpaceBounds);
   gfxRect roundedUserSpaceBounds =
     IntermediateSpaceToUserSpace(roundedIntermediateSpaceBounds);
   return roundedUserSpaceBounds;
@@ -237,16 +236,18 @@ nsSVGFilterInstance::ComputeUserSpaceBounds()
 
 IntRect
 nsSVGFilterInstance::UserSpaceToIntermediateSpace(
-  const gfxRect& aUserSpace, bool aRoundOut) const
+  const gfxRect& aUserSpace) const
 {
-  gfxRect userSpace = aUserSpace;
   gfxRect intermediateSpace =
-    mUserSpaceToIntermediateSpaceTransform.TransformBounds(userSpace);
-  if (aRoundOut) {
-    intermediateSpace.RoundOut();
+    mUserSpaceToIntermediateSpaceTransform.TransformBounds(aUserSpace);
+  intermediateSpace.RoundOut();
+  nsIntRect intermediateSpaceNsIntRect;
+  bool overflow =
+    !gfxUtils::GfxRectToIntRect(intermediateSpace, &intermediateSpaceNsIntRect);
+  if (overflow) {
+    return IntRect();
   }
-  // TODO(mvujovic): Check for float to int overflow?
-  return ToIntRect(intermediateSpace);
+  return ToIntRect(intermediateSpaceNsIntRect);
 }
 
 gfxRect
@@ -477,9 +478,8 @@ nsSVGFilterInstance::ComputeIntermediateSpacePrimitiveSubregion(
   // We currently require filter primitive subregions to be pixel-aligned.
   // Following the spec, any pixel partially in the subregion is included
   // in the subregion.
-  bool roundOut = true;
-  IntRect intermediateSpaceSubregion = 
-    UserSpaceToIntermediateSpace(userSpaceSubregion, roundOut);
+  IntRect intermediateSpaceSubregion =
+    UserSpaceToIntermediateSpace(userSpaceSubregion);
 
   if (!fE->mLengthAttributes[nsSVGFE::ATTR_X].IsExplicitlySet())
     intermediateSpaceSubregion.x = defaultSubregion.X();
@@ -511,14 +511,14 @@ nsSVGFilterInstance::ClipLastPrimitiveDescriptionByFilterRegion()
   descr.SetPrimitiveSubregion(primitiveSubregion);
 }
 
-IntRect
-nsSVGFilterInstance::ToIntRect(const gfxRect& rect)
-{
-  return IntRect(rect.X(), rect.Y(), rect.Width(), rect.Height());
-}
-
 gfxRect
 nsSVGFilterInstance::ToGfxRect(const IntRect& rect)
 {
   return gfxRect(rect.X(), rect.Y(), rect.Width(), rect.Height());
+}
+
+IntRect
+nsSVGFilterInstance::ToIntRect(const nsIntRect& rect)
+{
+  return IntRect(rect.X(), rect.Y(), rect.Width(), rect.Height());
 }

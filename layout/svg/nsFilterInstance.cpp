@@ -25,12 +25,6 @@ using namespace mozilla;
 using namespace mozilla::dom;
 using namespace mozilla::gfx;
 
-IntRect
-nsFilterInstance::ToIntRect(const gfxRect& rect)
-{
-  return IntRect(rect.X(), rect.Y(), rect.Width(), rect.Height());
-}
-
 gfxRect
 nsFilterInstance::ToGfxRect(const nsIntRect& rect)
 {

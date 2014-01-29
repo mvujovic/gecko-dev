@@ -261,7 +261,6 @@ private:
   /**
    * Rect helpers.
    */
-  static IntRect ToIntRect(const gfxRect& rect);
   static gfxRect ToGfxRect(const nsIntRect& rect);
   static IntRect InfiniteIntRect();
 

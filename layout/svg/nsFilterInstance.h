@@ -156,12 +156,19 @@ private:
                             DrawTarget* aTargetDT);
 
   /**
-   * Build the list of FilterPrimitiveDescriptions that describes the filter's
-   * filter primitives and their connections. This populates
-   * mPrimitiveDescriptions and mInputImages.
+   * Build the list of FilterPrimitiveDescriptions with the nsStyleFilter chain.
+   *
+   * This populates mPrimitiveDescriptions and mInputImages.
    */
   nsresult BuildPrimitives();
-  nsresult BuildPrimitivesForFilter(const nsStyleFilter& filter);
+
+  /**
+   * Build the list of FilterPrimitiveDescriptions for a particular SVG
+   * reference filter or CSS filter.
+   *
+   * This populates mPrimitiveDescriptions and mInputImages.
+   */
+  nsresult BuildPrimitivesForFilter(const nsStyleFilter& aFilter);
 
   /**
    * Computes the filter space bounds of the areas that we actually *need* from
@@ -174,7 +181,7 @@ private:
    * Translates all of the primitive descriptions' subregions
    * by a certain amount.
    */
-  void TranslatePrimitiveSubregions(IntPoint translation);
+  void TranslatePrimitiveSubregions(IntPoint aTranslation);
 
   /**
    * Computes the filter region based on the built primitive descriptions.

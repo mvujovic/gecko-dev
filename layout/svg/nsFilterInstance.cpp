@@ -226,31 +226,31 @@ nsFilterInstance::BuildPrimitives()
 }
 
 nsresult
-nsFilterInstance::BuildPrimitivesForFilter(const nsStyleFilter& filter)
+nsFilterInstance::BuildPrimitivesForFilter(const nsStyleFilter& aFilter)
 {
-  nsresult result = NS_ERROR_FAILURE;
-  if (filter.GetType() == NS_STYLE_FILTER_URL) {
+  bool success = false;
+  if (aFilter.GetType() == NS_STYLE_FILTER_URL) {
     nsSVGFilterInstance svgFilterInstance(
       mTargetFrame,
       mTargetBBox,
       mUserSpaceToIntermediateSpaceTransform,
-      filter,
+      aFilter,
       mPrimitiveDescriptions,
       mInputImages);
-    result = svgFilterInstance.IsInitialized() ? NS_OK : NS_ERROR_FAILURE;
+    success = svgFilterInstance.IsInitialized();
   } else {
-    nsCSSFilterInstance cssFilterInstance(filter, mPrimitiveDescriptions);
-    result = cssFilterInstance.IsInitialized() ? NS_OK : NS_ERROR_FAILURE;
+    nsCSSFilterInstance cssFilterInstance(aFilter, mPrimitiveDescriptions);
+    success = cssFilterInstance.IsInitialized();
   }
-  return result;
+  return success ? NS_OK : NS_ERROR_FAILURE;
 }
 
 void
-nsFilterInstance::TranslatePrimitiveSubregions(IntPoint translation)
+nsFilterInstance::TranslatePrimitiveSubregions(IntPoint aTranslation)
 {
   for (uint32_t i = 0; i < mPrimitiveDescriptions.Length(); i++) {
     FilterPrimitiveDescription& descr = mPrimitiveDescriptions[i];
-    IntRect primitiveSubregion = descr.PrimitiveSubregion() + translation;
+    IntRect primitiveSubregion = descr.PrimitiveSubregion() + aTranslation;
     descr.SetPrimitiveSubregion(primitiveSubregion);
   }
 }

@@ -182,17 +182,6 @@ nsSVGFilterInstance::GetFilterFrame()
   return static_cast<nsSVGFilterFrame*>(frame);    
 }
 
-// TODO(mvujovic): Handle filterRes when there is a single SVG reference filter.
-// Otherwise, ignore it.
-
-// TODO(mvujovic): Reenable this for the overall filter space bounds.
-// We don't care if this overflows, because we can handle upscaling /
-// downscaling to filterRes.
-// bool overflow;
-// gfxSize filterRes = 
-//   nsSVGUtils::ConvertToSurfaceSize(scaledSVGFilterRegion.Size(), &overflow);
-// return IntRect(0, 0, filterRes.width, filterRes.height);
-
 // Compute the user space bounds (aka filter region).
 gfxRect
 nsSVGFilterInstance::ComputeUserSpaceBounds()

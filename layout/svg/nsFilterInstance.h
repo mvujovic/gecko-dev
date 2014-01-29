@@ -72,17 +72,6 @@ public:
   gfxRect GetFilterRegion() const { return mUserSpaceBounds; }
 
   /**
-   * Returns the size of the user specified "filter region", in filter space.
-   * The size will be {filterRes.x by filterRes.y}, whether the user specified
-   * the filter's filterRes attribute explicitly, or the implementation chose
-   * the filterRes values. (The top-left of the filter region is the origin of
-   * filter space, which is why this method returns an nsIntSize and not an
-   * nsIntRect.)
-   */
-  uint32_t GetFilterResX() const { return mFilterSpaceBounds.width; }
-  uint32_t GetFilterResY() const { return mFilterSpaceBounds.height; }
-
-  /**
    * Draws the filter output into aContext. The area that
    * needs to be painted must have been specified before calling this method
    * by passing it as the aPostFilterDirtyRect argument to the
@@ -269,6 +258,9 @@ private:
    */
   gfxMatrix ComputeUserSpaceToFrameSpaceInCSSPxTransform();
 
+  /**
+   * Rect helpers.
+   */
   static IntRect ToIntRect(const gfxRect& rect);
   static gfxRect ToGfxRect(const nsIntRect& rect);
   static IntRect InfiniteIntRect();

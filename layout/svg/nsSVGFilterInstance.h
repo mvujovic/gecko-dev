@@ -138,6 +138,8 @@ private:
     nsSVGFE* aPrimitiveElement,
     uint32_t& aCurrentIndex,
     int32_t aSourceGraphicIndex,
+    bool &aSourceAlphaAvailable,
+    int32_t &aSourceAlphaIndex,
     const nsDataHashtable<nsStringHashKey, int32_t>& aImageTable,
     nsTArray<int32_t>& aSourceIndices);
 
@@ -165,7 +167,7 @@ private:
    *
    * This zeros out the RGB channels and keeps the alpha channel.
    */
-  void AppendAlphaConversionPrimitiveDescription();
+  void AppendAlphaConversionPrimitiveDescription(int32_t aSourceGraphicIndex);
 
   /**
    * Rect helpers.

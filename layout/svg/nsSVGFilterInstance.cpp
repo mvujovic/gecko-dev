@@ -279,6 +279,9 @@ nsSVGFilterInstance::BuildPrimitives()
     (int32_t)numPrimitiveDescrs - 1 :
     FilterPrimitiveDescription::kPrimitiveIndexSourceGraphic;
 
+  bool sourceAlphaAvailable = false;
+  int32_t sourceAlphaIndex = 0;
+
   for (uint32_t primitiveElementIndex = 0,
        primitiveDescrIndex = numPrimitiveDescrs;
        primitiveElementIndex < primitiveElements.Length();
@@ -290,6 +293,8 @@ nsSVGFilterInstance::BuildPrimitives()
     nsresult rv = GetSourceIndices(primitiveElement,
                                    primitiveDescrIndex,
                                    sourceGraphicIndex,
+                                   sourceAlphaAvailable,
+                                   sourceAlphaIndex,
                                    imageTable,
                                    sourceIndices);
     if (NS_FAILED(rv)) {
@@ -355,6 +360,8 @@ nsSVGFilterInstance::GetSourceIndices(
   nsSVGFE* aPrimitiveElement,
   uint32_t& aCurrentIndex,
   int32_t aSourceGraphicIndex,
+  bool &aSourceAlphaAvailable,
+  int32_t &aSourceAlphaIndex,
   const nsDataHashtable<nsStringHashKey, int32_t>& aImageTable,
   nsTArray<int32_t>& aSourceIndices)
 {
@@ -369,12 +376,19 @@ nsSVGFilterInstance::GetSourceIndices(
     if (str.EqualsLiteral("SourceGraphic")) {
         sourceIndex = aSourceGraphicIndex;
     } else if (str.EqualsLiteral("SourceAlpha")) {
-      if (aCurrentIndex == 0) {
-        sourceIndex = FilterPrimitiveDescription::kPrimitiveIndexSourceAlpha;
+      if (aSourceAlphaAvailable) {
+        sourceIndex = aSourceAlphaIndex;
       } else {
-        AppendAlphaConversionPrimitiveDescription();
-        aCurrentIndex++;
-        sourceIndex = aCurrentIndex - 1;
+        if (aCurrentIndex == 0) {
+          aSourceAlphaIndex =
+            FilterPrimitiveDescription::kPrimitiveIndexSourceAlpha;
+        } else {
+          AppendAlphaConversionPrimitiveDescription(aSourceGraphicIndex);
+          aSourceAlphaIndex = aCurrentIndex;
+          aCurrentIndex++;
+        }
+        sourceIndex = aSourceAlphaIndex;
+        aSourceAlphaAvailable = true;
       }
     } else if (str.EqualsLiteral("FillPaint")) {
       sourceIndex = FilterPrimitiveDescription::kPrimitiveIndexFillPaint;
@@ -399,22 +413,26 @@ nsSVGFilterInstance::GetSourceIndices(
   return NS_OK;
 }
 
-void nsSVGFilterInstance::AppendAlphaConversionPrimitiveDescription()
+void nsSVGFilterInstance::AppendAlphaConversionPrimitiveDescription(
+  int32_t aSourceGraphicIndex)
 {
   FilterPrimitiveDescription descr(
     FilterPrimitiveDescription::eComponentTransfer);
 
   // Connect the new primitive description to the last one.
-  uint32_t numPrimitiveDescrs = mPrimitiveDescrs.Length();
-  uint32_t lastPrimitiveDescrIndex = numPrimitiveDescrs - 1;
-  const FilterPrimitiveDescription& lastPrimitiveDescr =
-    mPrimitiveDescrs[lastPrimitiveDescrIndex];
-  ColorSpace lastColorSpace = lastPrimitiveDescr.OutputColorSpace();
+  IntRect primitiveSubregion = mIntermediateSpaceBounds;
+  ColorSpace colorSpace = SRGB;
+  if (aSourceGraphicIndex >= 0) {
+    const FilterPrimitiveDescription& sourcePrimitiveDescr =
+      mPrimitiveDescrs[aSourceGraphicIndex];
+    primitiveSubregion = sourcePrimitiveDescr.PrimitiveSubregion();
+    colorSpace = sourcePrimitiveDescr.OutputColorSpace();
+  }
 
-  descr.SetPrimitiveSubregion(lastPrimitiveDescr.PrimitiveSubregion());
-  descr.SetInputPrimitive(0, lastPrimitiveDescrIndex);
-  descr.SetInputColorSpace(0, lastColorSpace);
-  descr.SetOutputColorSpace(lastColorSpace);
+  descr.SetPrimitiveSubregion(primitiveSubregion);
+  descr.SetInputPrimitive(0, aSourceGraphicIndex);
+  descr.SetInputColorSpace(0, colorSpace);
+  descr.SetOutputColorSpace(colorSpace);
 
   // Zero out the RGB channels to black.
   static const AttributeName attributeNames[3] = {

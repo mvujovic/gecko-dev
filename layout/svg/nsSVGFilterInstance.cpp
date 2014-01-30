@@ -39,6 +39,7 @@ nsSVGFilterInstance::nsSVGFilterInstance(
     mPrimitiveDescrs(aPrimitiveDescrs),
     mInputImages(aInputImages),
     mSourceAlphaAvailable(false),
+    mImageTable(10),
     mInitialized(false)
 {
   // Get the filter frame.
@@ -282,9 +283,6 @@ nsSVGFilterInstance::BuildPrimitives()
   nsTArray<nsRefPtr<nsSVGFE> > primitiveElements;
   GetFilterPrimitiveElements(primitiveElements);
 
-  // Maps source image name to source index.
-  nsDataHashtable<nsStringHashKey, int32_t> imageTable(10);
-
   for (uint32_t primitiveElementIndex = 0;
        primitiveElementIndex < primitiveElements.Length();
        primitiveElementIndex++) {
@@ -292,7 +290,6 @@ nsSVGFilterInstance::BuildPrimitives()
 
     nsAutoTArray<int32_t,2> sourceIndices;
     nsresult rv = GetOrCreateSourceIndicesForNextPrimitive(primitiveElement,
-                                                           imageTable,
                                                            sourceIndices);
     if (NS_FAILED(rv)) {
       return rv;
@@ -303,40 +300,62 @@ nsSVGFilterInstance::BuildPrimitives()
                                                  sourceIndices);
 
     FilterPrimitiveDescription descr = 
-      primitiveElement->GetPrimitiveDescription(this, 
+      primitiveElement->GetPrimitiveDescription(this,
                                                 primitiveSubregion,
                                                 mInputImages);
-
     descr.SetPrimitiveSubregion(primitiveSubregion);
 
-    for (uint32_t i = 0; i < sourceIndices.Length(); i++) {
-      int32_t inputIndex = sourceIndices[i];
-      descr.SetInputPrimitive(i, inputIndex);
-      ColorSpace inputColorSpace = inputIndex < 0 ? SRGB :
-          mPrimitiveDescrs[inputIndex].OutputColorSpace();
-      ColorSpace desiredInputColorSpace =
-        primitiveElement->GetInputColorSpace(i, inputColorSpace);
-      descr.SetInputColorSpace(i, desiredInputColorSpace);
-      if (i == 0) {
-        // the output color space is whatever in1 is if there is an in1
-        descr.SetOutputColorSpace(desiredInputColorSpace);
-      }
-    }
-
-    if (sourceIndices.Length() == 0) {
-      descr.SetOutputColorSpace(primitiveElement->GetOutputColorSpace());
-    }
-
-    mPrimitiveDescrs.AppendElement(descr);
-
-    nsAutoString str;
-    primitiveElement->GetResultImageName().GetAnimValue(
-      str, primitiveElement);
-    uint32_t primitiveDescrIndex = mPrimitiveDescrs.Length() - 1;
-    imageTable.Put(str, primitiveDescrIndex);
+    AttachSources(descr, primitiveElement, sourceIndices);
+    AppendPrimitiveDescription(descr, primitiveElement);
   }
 
   return NS_OK;
+}
+
+void
+nsSVGFilterInstance::AppendPrimitiveDescription(
+  const FilterPrimitiveDescription& aDescr,
+  nsSVGFE* aPrimitiveElement)
+{
+  mPrimitiveDescrs.AppendElement(aDescr);
+
+  nsAutoString resultName;
+  aPrimitiveElement->GetResultImageName().GetAnimValue(resultName,
+                                                       aPrimitiveElement);
+  uint32_t primitiveDescrIndex = mPrimitiveDescrs.Length() - 1;
+  mImageTable.Put(resultName, primitiveDescrIndex);
+}
+
+void
+nsSVGFilterInstance::AttachSources(FilterPrimitiveDescription& aDescr,
+                                  nsSVGFE* aPrimitiveElement,
+                                   nsTArray<int32_t>& aSourceIndices)
+{
+  for (uint32_t i = 0; i < aSourceIndices.Length(); i++) {
+    AttachSource(aDescr, aPrimitiveElement, i, aSourceIndices[i]);
+  }
+
+  // The output color space is whatever in1 is if there is an in1.
+  ColorSpace outputColorSpace = aSourceIndices.Length() > 0 ?
+    aDescr.InputColorSpace(0) :
+    aPrimitiveElement->GetOutputColorSpace();
+  aDescr.SetOutputColorSpace(outputColorSpace);
+}
+
+void
+nsSVGFilterInstance::AttachSource(FilterPrimitiveDescription& aDescr,
+                                  nsSVGFE* aPrimitiveElement,
+                                  int32_t aInputIndex,
+                                  int32_t aSourceIndex)
+{
+  aDescr.SetInputPrimitive(aInputIndex, aSourceIndex);
+
+  ColorSpace inputColorSpace = aSourceIndex < 0 ? 
+    SRGB :
+    mPrimitiveDescrs[aSourceIndex].OutputColorSpace();
+  ColorSpace desiredInputColorSpace =
+    aPrimitiveElement->GetInputColorSpace(aInputIndex, inputColorSpace);
+  aDescr.SetInputColorSpace(aInputIndex, desiredInputColorSpace);
 }
 
 void
@@ -364,7 +383,6 @@ nsSVGFilterInstance::GetPreviousIndex()
 nsresult
 nsSVGFilterInstance::GetOrCreateSourceIndicesForNextPrimitive(
   nsSVGFE* aPrimitiveElement,
-  const nsDataHashtable<nsStringHashKey, int32_t>& aImageTable,
   nsTArray<int32_t>& aSourceIndices)
 {
   nsAutoTArray<nsSVGStringInfo,2> sources;
@@ -389,7 +407,7 @@ nsSVGFilterInstance::GetOrCreateSourceIndicesForNextPrimitive(
     } else if (str.EqualsLiteral("")) {
       sourceIndex = GetPreviousIndex();
     } else {
-      bool inputExists = aImageTable.Get(str, &sourceIndex);
+      bool inputExists = mImageTable.Get(str, &sourceIndex);
       if (!inputExists)
         return NS_ERROR_FAILURE;
     }

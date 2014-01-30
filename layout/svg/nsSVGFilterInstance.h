@@ -140,7 +140,6 @@ private:
    */
   nsresult GetOrCreateSourceIndicesForNextPrimitive(
     nsSVGFE* aPrimitiveElement,
-    const nsDataHashtable<nsStringHashKey, int32_t>& aImageTable,
     nsTArray<int32_t>& aSourceIndices);
 
   /**
@@ -172,6 +171,18 @@ private:
   int32_t GetPreviousIndex();
 
   int32_t ComputeSourceGraphicIndex();
+
+  void AttachSources(FilterPrimitiveDescription& aDescr,
+                     nsSVGFE* aPrimitiveElement,
+                     nsTArray<int32_t>& aSourceIndices);
+
+  void AttachSource(FilterPrimitiveDescription& aDescr,
+                    nsSVGFE* aPrimitiveElement,
+                    int32_t aInputIndex,
+                    int32_t aSourceIndex);
+
+  void AppendPrimitiveDescription(const FilterPrimitiveDescription& aDescr,
+                                  nsSVGFE* aPrimitiveElement);
 
   /**
    * Rect helpers.
@@ -206,6 +217,10 @@ private:
   int32_t mSourceGraphicIndex;
   bool mSourceAlphaAvailable;
   int32_t mSourceAlphaIndex;
+
+  // Maps source image name to source index.
+  nsDataHashtable<nsStringHashKey, int32_t> mImageTable;;
+
   bool mInitialized;
 
   nsSVGFilterFrame* mFilterFrame;

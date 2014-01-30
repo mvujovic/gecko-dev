@@ -414,7 +414,7 @@ nsSVGFilterInstance::GetOrCreateSourceIndicesForNextPrimitive(
 
 int32_t nsSVGFilterInstance::GetOrCreateSourceAlphaIndex()
 {
-  // Lazily return the SourceAlpha index, if we've already created a 
+  // Lazily return the SourceAlpha index, if we've already created a
   // FilterPrimitiveDescription that generates SourceAlpha or determined that
   // we can use the SourceAlpha of the unfiltered image.
   if (mSourceAlphaAvailable) {

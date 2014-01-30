@@ -48,7 +48,7 @@ public:
     const gfxRect& aTargetBBox,
     const gfxMatrix& aUserSpaceToIntermediateSpaceTransform,
     const nsStyleFilter& aFilter,
-    nsTArray<FilterPrimitiveDescription>& aPrimitiveDescriptions,
+    nsTArray<FilterPrimitiveDescription>& aPrimitiveDescrs,
     nsTArray<mozilla::RefPtr<SourceSurface>>& aInputImages);
 
   bool IsInitialized() const { return mInitialized; }
@@ -183,7 +183,7 @@ private:
   gfxMatrix mIntermediateSpaceToUserSpaceTransform;
 
   nsStyleFilter mFilter;
-  nsTArray<FilterPrimitiveDescription>& mPrimitiveDescriptions;
+  nsTArray<FilterPrimitiveDescription>& mPrimitiveDescrs;
   nsTArray<mozilla::RefPtr<SourceSurface>>& mInputImages;
   bool mInitialized;
 

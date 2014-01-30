@@ -25,7 +25,7 @@ typedef mozilla::gfx::FilterPrimitiveDescription FilterPrimitiveDescription;
 public:
   nsCSSFilterInstance(
     const nsStyleFilter& aFilter,
-    nsTArray<FilterPrimitiveDescription>& aPrimitiveDescriptions);
+    nsTArray<FilterPrimitiveDescription>& aPrimitiveDescrs);
 
   bool IsInitialized() const { return mInitialized; }
 
@@ -36,7 +36,7 @@ private:
   static IntRect InfiniteIntRect();
 
   nsStyleFilter mFilter;
-  nsTArray<FilterPrimitiveDescription>& mPrimitiveDescriptions;
+  nsTArray<FilterPrimitiveDescription>& mPrimitiveDescrs;
   bool mInitialized;
 };
 

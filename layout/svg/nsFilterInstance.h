@@ -147,7 +147,7 @@ private:
   /**
    * Build the list of FilterPrimitiveDescriptions with the nsStyleFilter chain.
    *
-   * This populates mPrimitiveDescriptions and mInputImages.
+   * This populates mPrimitiveDescrs and mInputImages.
    */
   nsresult BuildPrimitives();
 
@@ -155,7 +155,7 @@ private:
    * Build the list of FilterPrimitiveDescriptions for a particular SVG
    * reference filter or CSS filter.
    *
-   * This populates mPrimitiveDescriptions and mInputImages.
+   * This populates mPrimitiveDescrs and mInputImages.
    */
   nsresult BuildPrimitivesForFilter(const nsStyleFilter& aFilter);
 
@@ -332,7 +332,7 @@ private:
   SourceInfo mStrokePaint;
   nsIFrame* mTransformRoot;
   nsTArray<mozilla::RefPtr<SourceSurface>> mInputImages;
-  nsTArray<FilterPrimitiveDescription> mPrimitiveDescriptions;
+  nsTArray<FilterPrimitiveDescription> mPrimitiveDescrs;
 
   nsTArray<nsStyleFilter> mFilters;
   bool mInitialized;

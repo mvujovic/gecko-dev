@@ -29,14 +29,14 @@ nsSVGFilterInstance::nsSVGFilterInstance(
   const gfxRect& aTargetBBox,
   const gfxMatrix& aUserSpaceToIntermediateSpaceTransform,
   const nsStyleFilter& aFilter,
-  nsTArray<FilterPrimitiveDescription>& aPrimitiveDescriptions,
+  nsTArray<FilterPrimitiveDescription>& aPrimitiveDescrs,
   nsTArray<mozilla::RefPtr<SourceSurface>>& aInputImages) :
     mTargetFrame(aTargetFrame),
     mTargetBBox(aTargetBBox),
     mUserSpaceToIntermediateSpaceTransform(
       aUserSpaceToIntermediateSpaceTransform),
     mFilter(aFilter),
-    mPrimitiveDescriptions(aPrimitiveDescriptions),
+    mPrimitiveDescrs(aPrimitiveDescrs),
     mInputImages(aInputImages),
     mInitialized(false)
 {
@@ -73,13 +73,13 @@ nsSVGFilterInstance::nsSVGFilterInstance(
   mFilterSpaceBounds = UserSpaceToFilterSpace(mUserSpaceBounds);
 
   // Build the primitives.
-  uint32_t initialNumPrimitives = mPrimitiveDescriptions.Length();
+  uint32_t initialNumPrimitives = mPrimitiveDescrs.Length();
   nsresult rv = BuildPrimitives();
   if (NS_FAILED(rv)) {
     return;
   }
 
-  uint32_t finalNumPrimitives = mPrimitiveDescriptions.Length();
+  uint32_t finalNumPrimitives = mPrimitiveDescrs.Length();
   if (finalNumPrimitives == initialNumPrimitives) {
     // Nothing should be rendered, so nothing is needed.
     return;
@@ -274,21 +274,21 @@ nsSVGFilterInstance::BuildPrimitives()
   // Maps source image name to source index.
   nsDataHashtable<nsStringHashKey, int32_t> imageTable(10);
 
-  uint32_t numPrimitiveDescriptions = mPrimitiveDescriptions.Length();
-  int32_t sourceGraphicIndex = numPrimitiveDescriptions > 0 ?
-    (int32_t)numPrimitiveDescriptions - 1 :
+  uint32_t numPrimitiveDescrs = mPrimitiveDescrs.Length();
+  int32_t sourceGraphicIndex = numPrimitiveDescrs > 0 ?
+    (int32_t)numPrimitiveDescrs - 1 :
     FilterPrimitiveDescription::kPrimitiveIndexSourceGraphic;
 
   for (uint32_t primitiveElementIndex = 0,
-       primitiveDescriptionIndex = numPrimitiveDescriptions;
+       primitiveDescrIndex = numPrimitiveDescrs;
        primitiveElementIndex < primitiveElements.Length();
        primitiveElementIndex++,
-       primitiveDescriptionIndex++) {
+       primitiveDescrIndex++) {
     nsSVGFE* primitiveElement = primitiveElements[primitiveElementIndex];
 
     nsAutoTArray<int32_t,2> sourceIndices;
     nsresult rv = GetSourceIndices(primitiveElement,
-                                   primitiveDescriptionIndex,
+                                   primitiveDescrIndex,
                                    sourceGraphicIndex,
                                    imageTable,
                                    sourceIndices);
@@ -311,7 +311,7 @@ nsSVGFilterInstance::BuildPrimitives()
       int32_t inputIndex = sourceIndices[i];
       descr.SetInputPrimitive(i, inputIndex);
       ColorSpace inputColorSpace = inputIndex < 0 ? SRGB :
-          mPrimitiveDescriptions[inputIndex].OutputColorSpace();
+          mPrimitiveDescrs[inputIndex].OutputColorSpace();
       ColorSpace desiredInputColorSpace =
         primitiveElement->GetInputColorSpace(i, inputColorSpace);
       descr.SetInputColorSpace(i, desiredInputColorSpace);
@@ -325,12 +325,12 @@ nsSVGFilterInstance::BuildPrimitives()
       descr.SetOutputColorSpace(primitiveElement->GetOutputColorSpace());
     }
 
-    mPrimitiveDescriptions.AppendElement(descr);
+    mPrimitiveDescrs.AppendElement(descr);
 
     nsAutoString str;
     primitiveElement->GetResultImageName().GetAnimValue(
       str, primitiveElement);
-    imageTable.Put(str, primitiveDescriptionIndex);
+    imageTable.Put(str, primitiveDescrIndex);
   }
 
   return NS_OK;
@@ -405,10 +405,10 @@ void nsSVGFilterInstance::AppendAlphaConversionPrimitiveDescription()
     FilterPrimitiveDescription::eComponentTransfer);
 
   // Connect the new primitive description to the last one.
-  uint32_t numPrimitiveDescriptions = mPrimitiveDescriptions.Length();
-  uint32_t lastPrimitiveDescrIndex = numPrimitiveDescriptions - 1;
+  uint32_t numPrimitiveDescrs = mPrimitiveDescrs.Length();
+  uint32_t lastPrimitiveDescrIndex = numPrimitiveDescrs - 1;
   const FilterPrimitiveDescription& lastPrimitiveDescr =
-    mPrimitiveDescriptions[lastPrimitiveDescrIndex];
+    mPrimitiveDescrs[lastPrimitiveDescrIndex];
   ColorSpace lastColorSpace = lastPrimitiveDescr.OutputColorSpace();
 
   descr.SetPrimitiveSubregion(lastPrimitiveDescr.PrimitiveSubregion());
@@ -439,7 +439,7 @@ void nsSVGFilterInstance::AppendAlphaConversionPrimitiveDescription()
                          (uint32_t)SVG_FECOMPONENTTRANSFER_TYPE_IDENTITY);
   descr.Attributes().Set(eComponentTransferFunctionA, functionAttributes);
 
-  mPrimitiveDescriptions.AppendElement(descr);
+  mPrimitiveDescrs.AppendElement(descr);
 }
 
 IntRect
@@ -454,7 +454,7 @@ nsSVGFilterInstance::ComputeIntermediateSpacePrimitiveSubregion(
     for (uint32_t i = 0; i < aInputIndices.Length(); ++i) {
       int32_t inputIndex = aInputIndices[i];
       IntRect inputSubregion = inputIndex >= 0 ?
-        mPrimitiveDescriptions[inputIndex].PrimitiveSubregion() :
+        mPrimitiveDescrs[inputIndex].PrimitiveSubregion() :
         mIntermediateSpaceBounds;
 
       defaultSubregion = defaultSubregion.Union(inputSubregion);
@@ -495,12 +495,12 @@ nsSVGFilterInstance::ComputeIntermediateSpacePrimitiveSubregion(
 void
 nsSVGFilterInstance::ClipLastPrimitiveDescriptionByFilterRegion()
 {
-  uint32_t numPrimitiveDescriptions = mPrimitiveDescriptions.Length();
-  if (numPrimitiveDescriptions <= 0)
+  uint32_t numPrimitiveDescrs = mPrimitiveDescrs.Length();
+  if (numPrimitiveDescrs <= 0)
     return;
 
   FilterPrimitiveDescription& descr =
-    mPrimitiveDescriptions[numPrimitiveDescriptions - 1];
+    mPrimitiveDescrs[numPrimitiveDescrs - 1];
   IntRect primitiveSubregion = descr.PrimitiveSubregion();
   primitiveSubregion =
     primitiveSubregion.Intersect(mIntermediateSpaceBounds);

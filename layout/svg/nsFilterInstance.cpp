@@ -144,7 +144,7 @@ nsFilterInstance::nsFilterInstance(
     return;
   }
 
-  if (mPrimitiveDescriptions.IsEmpty()) {
+  if (mPrimitiveDescrs.IsEmpty()) {
     // Nothing should be rendered, so nothing is needed.
     return;
   }
@@ -207,12 +207,12 @@ nsFilterInstance::FilterSpaceToUserSpace(const nsIntRect& aFilterSpace) const
 nsresult
 nsFilterInstance::BuildPrimitives()
 {
-  NS_ASSERTION(!mPrimitiveDescriptions.Length(),
+  NS_ASSERTION(!mPrimitiveDescrs.Length(),
     "expected to start building primitives from scratch");
 
   for (uint32_t i = 0; i < mFilters.Length(); i++) {
     if (NS_FAILED(BuildPrimitivesForFilter(mFilters[i]))) {
-      mPrimitiveDescriptions.Clear();
+      mPrimitiveDescrs.Clear();
       return NS_ERROR_FAILURE;
     }
   }
@@ -229,11 +229,11 @@ nsFilterInstance::BuildPrimitivesForFilter(const nsStyleFilter& aFilter)
       mTargetBBox,
       mUserSpaceToIntermediateSpaceTransform,
       aFilter,
-      mPrimitiveDescriptions,
+      mPrimitiveDescrs,
       mInputImages);
     success = svgFilterInstance.IsInitialized();
   } else {
-    nsCSSFilterInstance cssFilterInstance(aFilter, mPrimitiveDescriptions);
+    nsCSSFilterInstance cssFilterInstance(aFilter, mPrimitiveDescrs);
     success = cssFilterInstance.IsInitialized();
   }
   return success ? NS_OK : NS_ERROR_FAILURE;
@@ -242,8 +242,8 @@ nsFilterInstance::BuildPrimitivesForFilter(const nsStyleFilter& aFilter)
 void
 nsFilterInstance::TranslatePrimitiveSubregions(IntPoint aTranslation)
 {
-  for (uint32_t i = 0; i < mPrimitiveDescriptions.Length(); i++) {
-    FilterPrimitiveDescription& descr = mPrimitiveDescriptions[i];
+  for (uint32_t i = 0; i < mPrimitiveDescrs.Length(); i++) {
+    FilterPrimitiveDescription& descr = mPrimitiveDescrs[i];
     IntRect primitiveSubregion = descr.PrimitiveSubregion() + aTranslation;
     descr.SetPrimitiveSubregion(primitiveSubregion);
   }
@@ -260,10 +260,9 @@ nsFilterInstance::ComputeOverallFilterMetrics()
     return NS_ERROR_FAILURE;
   }
 
-  FilterDescription filterDescription(mPrimitiveDescriptions,
-                                      InfiniteIntRect());
+  FilterDescription descr(mPrimitiveDescrs, InfiniteIntRect());
   nsIntRegion postFilterExtents =
-    FilterSupport::ComputePostFilterExtents(filterDescription,
+    FilterSupport::ComputePostFilterExtents(descr,
                                             sourceIntermediateSpaceBounds);
   nsIntRect intermediateSpaceBounds = postFilterExtents.GetBounds();
 
@@ -339,18 +338,19 @@ nsFilterInstance::ConvertRectsFromFrameSpaceToFilterSpace(
 void
 nsFilterInstance::ComputeNeededBoxes()
 {
-  if (mPrimitiveDescriptions.IsEmpty())
+  if (mPrimitiveDescrs.IsEmpty())
     return;
 
   nsIntRegion sourceGraphicNeededRegion;
   nsIntRegion fillPaintNeededRegion;
   nsIntRegion strokePaintNeededRegion;
 
-  FilterDescription filter(
-    mPrimitiveDescriptions, ToIntRect(mFilterSpaceBounds));
-  FilterSupport::ComputeSourceNeededRegions(
-    filter, mPostFilterDirtyRect,
-    sourceGraphicNeededRegion, fillPaintNeededRegion, strokePaintNeededRegion);
+  FilterDescription descr(mPrimitiveDescrs, ToIntRect(mFilterSpaceBounds));
+  FilterSupport::ComputeSourceNeededRegions(descr,
+                                            mPostFilterDirtyRect,
+                                            sourceGraphicNeededRegion,
+                                            fillPaintNeededRegion,
+                                            strokePaintNeededRegion);
 
   bool overflow;
   nsIntRect sourceBounds = UserSpaceToFilterSpace(mTargetBBox, &overflow);
@@ -557,7 +557,7 @@ nsFilterInstance::Render(gfxContext* aContext)
     return rv;
 
   IntRect filterSpaceBounds = ToIntRect(mFilterSpaceBounds);
-  FilterDescription filter(mPrimitiveDescriptions, filterSpaceBounds);
+  FilterDescription filter(mPrimitiveDescrs, filterSpaceBounds);
 
   FilterSupport::RenderFilterDescription(
     resultImageDT, filter, ToRect(filterRect),
@@ -589,7 +589,7 @@ nsFilterInstance::ComputePostFilterDirtyRect(nsRect* aPostFilterDirtyRect)
   }
 
   IntRect filterSpaceBounds = ToIntRect(mFilterSpaceBounds);
-  FilterDescription filter(mPrimitiveDescriptions, filterSpaceBounds);
+  FilterDescription filter(mPrimitiveDescrs, filterSpaceBounds);
   nsIntRegion resultChangeRegion =
     FilterSupport::ComputeResultChangeRegion(filter,
       mPreFilterDirtyRect, nsIntRegion(), nsIntRegion());
@@ -613,7 +613,7 @@ nsFilterInstance::ComputePostFilterExtents(nsRect* aPostFilterExtents)
   sourceBounds.UnionRect(sourceBounds, mTargetBounds);
 
   IntRect filterSpaceBounds = ToIntRect(mFilterSpaceBounds);
-  FilterDescription filter(mPrimitiveDescriptions, filterSpaceBounds);
+  FilterDescription filter(mPrimitiveDescrs, filterSpaceBounds);
   nsIntRegion postFilterExtents =
     FilterSupport::ComputePostFilterExtents(filter, sourceBounds);
   *aPostFilterExtents =

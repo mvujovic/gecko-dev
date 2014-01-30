@@ -21,9 +21,9 @@ nsCSSFilterInstance::InfiniteIntRect()
 
 nsCSSFilterInstance::nsCSSFilterInstance(
   const nsStyleFilter& aFilter,
-  nsTArray<FilterPrimitiveDescription>& aPrimitiveDescriptions) :
+  nsTArray<FilterPrimitiveDescription>& aPrimitiveDescrs) :
     mFilter(aFilter),
-    mPrimitiveDescriptions(aPrimitiveDescriptions),
+    mPrimitiveDescrs(aPrimitiveDescrs),
     mInitialized(false)
 {
   nsresult rv = BuildPrimitives();
@@ -58,14 +58,14 @@ nsCSSFilterInstance::BuildPrimitivesForBlur()
   FilterPrimitiveDescription descr(FilterPrimitiveDescription::eGaussianBlur);
   descr.SetPrimitiveSubregion(InfiniteIntRect());
 
-  uint32_t numPrimitiveDescriptions = mPrimitiveDescriptions.Length();
-  if (numPrimitiveDescriptions > 0) {
+  uint32_t numPrimitiveDescrs = mPrimitiveDescrs.Length();
+  if (numPrimitiveDescrs > 0) {
     // Use the output of the last filter primitive description as the input.
-    uint32_t lastPrimitiveDescrIndex = numPrimitiveDescriptions - 1;
+    uint32_t lastPrimitiveDescrIndex = numPrimitiveDescrs - 1;
     descr.SetInputPrimitive(0, lastPrimitiveDescrIndex);
 
     ColorSpace lastColorSpace =
-      mPrimitiveDescriptions[lastPrimitiveDescrIndex].OutputColorSpace();
+      mPrimitiveDescrs[lastPrimitiveDescrIndex].OutputColorSpace();
     descr.SetInputColorSpace(0, lastColorSpace);
     descr.SetOutputColorSpace(lastColorSpace);
   } else {
@@ -92,6 +92,6 @@ nsCSSFilterInstance::BuildPrimitivesForBlur()
   radius = std::min(radius, kMaxStdDeviation);
   descr.Attributes().Set(eGaussianBlurStdDeviation, Size(radius, radius));
 
-  mPrimitiveDescriptions.AppendElement(descr);
+  mPrimitiveDescrs.AppendElement(descr);
   return NS_OK;
 }

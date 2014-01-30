@@ -126,6 +126,10 @@ private:
    * Predefined sources include SourceGraphic, SourceAlpha, FillPaint, etc.
    * (e.g. <feGaussianBlur in="SourceGraphic" result="blur-result" ...>).
    *
+   * When there are multiple chained SVG filters
+   * (e.g. filter: url(#filter1) url(#filter2);), SourceGraphic and SourceAlpha
+   * refer to the output of the previous CSS or SVG filter.
+   *
    * If another filter primitive element is specified as the source
    * (e.g. <feColorMatrix in="blur-result" ...>), the index corresponding to its
    * FilterPrimitiveDescription is used.
@@ -134,12 +138,8 @@ private:
    * as the source. If there is no previous FilterPrimitiveDescription,
    * SourceGraphic is used.
    */
-  nsresult GetSourceIndices(
+  nsresult GetOrCreateSourceIndicesForNextPrimitive(
     nsSVGFE* aPrimitiveElement,
-    uint32_t& aCurrentIndex,
-    int32_t aSourceGraphicIndex,
-    bool &aSourceAlphaAvailable,
-    int32_t &aSourceAlphaIndex,
     const nsDataHashtable<nsStringHashKey, int32_t>& aImageTable,
     nsTArray<int32_t>& aSourceIndices);
 
@@ -162,12 +162,16 @@ private:
 
   /**
    * Appends a new FilterPrimitiveDescription to the
-   * FilterPrimitiveDescription(s) list that converts the last result into
+   * FilterPrimitiveDescription(s) list that converts the SourceGraphic into
    * a SourceAlpha input for the next FilterPrimitiveDescription.
    *
    * This zeros out the RGB channels and keeps the alpha channel.
    */
-  void AppendAlphaConversionPrimitiveDescription(int32_t aSourceGraphicIndex);
+  int32_t GetOrCreateSourceAlphaIndex();
+
+  int32_t GetPreviousIndex();
+
+  int32_t ComputeSourceGraphicIndex();
 
   /**
    * Rect helpers.
@@ -184,14 +188,6 @@ private:
   gfxMatrix mUserSpaceToIntermediateSpaceTransform;
   gfxMatrix mIntermediateSpaceToUserSpaceTransform;
 
-  nsStyleFilter mFilter;
-  nsTArray<FilterPrimitiveDescription>& mPrimitiveDescrs;
-  nsTArray<mozilla::RefPtr<SourceSurface>>& mInputImages;
-  bool mInitialized;
-
-  nsSVGFilterFrame* mFilterFrame;
-  const SVGFilterElement* mFilterElement;
-
   /**
    * The bounds of the <filter> element's result, in different spaces.
    */
@@ -203,6 +199,18 @@ private:
    * The 'primitiveUnits' attribute value (objectBoundingBox or userSpaceOnUse).
    */
   uint16_t mPrimitiveUnits;
+
+  nsStyleFilter mFilter;
+  nsTArray<FilterPrimitiveDescription>& mPrimitiveDescrs;
+  nsTArray<mozilla::RefPtr<SourceSurface>>& mInputImages;
+  int32_t mSourceGraphicIndex;
+  bool mSourceAlphaAvailable;
+  int32_t mSourceAlphaIndex;
+  bool mInitialized;
+
+  nsSVGFilterFrame* mFilterFrame;
+  const SVGFilterElement* mFilterElement;
+
 };
 
 #endif

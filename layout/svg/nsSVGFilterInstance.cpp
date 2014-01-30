@@ -309,7 +309,7 @@ nsSVGFilterInstance::BuildPrimitives()
                                                 mInputImages);
     descr.SetPrimitiveSubregion(primitiveSubregion);
 
-    AttachSources(descr, primitiveElement, sourceIndices);
+    AttachSourcesToPrimitiveDescription(descr, primitiveElement, sourceIndices);
     AppendPrimitiveDescription(descr, primitiveElement);
   }
 
@@ -324,19 +324,21 @@ nsSVGFilterInstance::AppendPrimitiveDescription(
   mPrimitiveDescrs.AppendElement(aDescr);
 
   nsAutoString resultName;
-  aPrimitiveElement->GetResultImageName().GetAnimValue(resultName,
-                                                       aPrimitiveElement);
+  aPrimitiveElement->GetResultImageName().GetAnimValue(
+    resultName, aPrimitiveElement);
   uint32_t primitiveDescrIndex = mPrimitiveDescrs.Length() - 1;
   mImageTable.Put(resultName, primitiveDescrIndex);
 }
 
 void
-nsSVGFilterInstance::AttachSources(FilterPrimitiveDescription& aDescr,
-                                  nsSVGFE* aPrimitiveElement,
-                                   nsTArray<int32_t>& aSourceIndices)
+nsSVGFilterInstance::AttachSourcesToPrimitiveDescription(
+  FilterPrimitiveDescription& aDescr,
+  nsSVGFE* aPrimitiveElement,
+  nsTArray<int32_t>& aSourceIndices)
 {
   for (uint32_t i = 0; i < aSourceIndices.Length(); i++) {
-    AttachSource(aDescr, aPrimitiveElement, i, aSourceIndices[i]);
+    AttachSourceToPrimitiveDescription(
+      aDescr, aPrimitiveElement, i, aSourceIndices[i]);
   }
 
   // The output color space is whatever in1 is if there is an in1.
@@ -347,16 +349,16 @@ nsSVGFilterInstance::AttachSources(FilterPrimitiveDescription& aDescr,
 }
 
 void
-nsSVGFilterInstance::AttachSource(FilterPrimitiveDescription& aDescr,
-                                  nsSVGFE* aPrimitiveElement,
-                                  int32_t aInputIndex,
-                                  int32_t aSourceIndex)
+nsSVGFilterInstance::AttachSourceToPrimitiveDescription(
+  FilterPrimitiveDescription& aDescr,
+  nsSVGFE* aPrimitiveElement,
+  int32_t aInputIndex,
+  int32_t aSourceIndex)
 {
   aDescr.SetInputPrimitive(aInputIndex, aSourceIndex);
 
   ColorSpace inputColorSpace = aSourceIndex < 0 ? 
-    SRGB :
-    mPrimitiveDescrs[aSourceIndex].OutputColorSpace();
+    SRGB : mPrimitiveDescrs[aSourceIndex].OutputColorSpace();
   ColorSpace desiredInputColorSpace =
     aPrimitiveElement->GetInputColorSpace(aInputIndex, inputColorSpace);
   aDescr.SetInputColorSpace(aInputIndex, desiredInputColorSpace);

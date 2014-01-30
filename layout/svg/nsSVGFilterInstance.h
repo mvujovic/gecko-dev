@@ -174,14 +174,30 @@ private:
    */
   int32_t GetCurrentResultIndex();
 
-  void AttachSources(FilterPrimitiveDescription& aDescr,
-                     nsSVGFE* aPrimitiveElement,
-                     nsTArray<int32_t>& aSourceIndices);
+  /**
+   * Maps a FilterPrimitiveDescription's input indices to source indices.
+   *
+   * The source index references another FilterPrimitiveDescription or a keyword
+   * like SourceGraphic.
+   *
+   * This also sets the appropriate colors spaces for the inputs and the output.
+   */
+  void AttachSourcesToPrimitiveDescription(FilterPrimitiveDescription& aDescr,
+                                           nsSVGFE* aPrimitiveElement,
+                                           nsTArray<int32_t>& aSourceIndices);
 
-  void AttachSource(FilterPrimitiveDescription& aDescr,
-                    nsSVGFE* aPrimitiveElement,
-                    int32_t aInputIndex,
-                    int32_t aSourceIndex);
+  /**
+   * Maps a FilterPrimitiveDescription's input index to a source index.
+   *
+   * The source index references another FilterPrimitiveDescription or a keyword
+   * like SourceGraphic.
+   *
+   * This also sets the appropriate color space for the the input.
+   */
+  void AttachSourceToPrimitiveDescription(FilterPrimitiveDescription& aDescr,
+                                          nsSVGFE* aPrimitiveElement,
+                                          int32_t aInputIndex,
+                                          int32_t aSourceIndex);
 
   void AppendPrimitiveDescription(const FilterPrimitiveDescription& aDescr,
                                   nsSVGFE* aPrimitiveElement);

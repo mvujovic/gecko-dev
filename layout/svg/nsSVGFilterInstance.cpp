@@ -264,20 +264,24 @@ nsSVGFilterInstance::FilterSpaceToUserSpace(const IntRect& aFilterSpace) const
     mUserSpaceBounds.TopLeft();
 }
 
-int32_t nsSVGFilterInstance::ComputeSourceGraphicIndex()
+
+int32_t
+nsSVGFilterInstance::GetCurrentResultIndex()
 {
   uint32_t numPrimitiveDescrs = mPrimitiveDescrs.Length();
-  return numPrimitiveDescrs > 0 ? 
-    numPrimitiveDescrs - 1 : 
-    FilterPrimitiveDescription::kPrimitiveIndexSourceGraphic;
+  return numPrimitiveDescrs <= 0 ?
+    FilterPrimitiveDescription::kPrimitiveIndexSourceGraphic :
+    numPrimitiveDescrs - 1;
 }
 
 nsresult
 nsSVGFilterInstance::BuildPrimitives()
 {
   ClipLastPrimitiveDescriptionByFilterRegion();
-
-  mSourceGraphicIndex = ComputeSourceGraphicIndex();
+  
+  // The SourceGraphic for this SVG filter is the result of previous SVG or CSS
+  // filter, or the SourceGraphic if there is none.
+  mSourceGraphicIndex = GetCurrentResultIndex();
 
   // Get the filter primitive elements.
   nsTArray<nsRefPtr<nsSVGFE> > primitiveElements;
@@ -372,14 +376,6 @@ nsSVGFilterInstance::GetFilterPrimitiveElements(
   }  
 }
 
-int32_t
-nsSVGFilterInstance::GetPreviousIndex()
-{
-  return mPrimitiveDescrs.Length() <= 0 ?
-    FilterPrimitiveDescription::kPrimitiveIndexSourceGraphic :
-    mPrimitiveDescrs.Length() - 1;
-}
-
 nsresult
 nsSVGFilterInstance::GetOrCreateSourceIndicesForNextPrimitive(
   nsSVGFE* aPrimitiveElement,
@@ -405,7 +401,7 @@ nsSVGFilterInstance::GetOrCreateSourceIndicesForNextPrimitive(
                str.EqualsLiteral("BackgroundAlpha")) {
       return NS_ERROR_NOT_IMPLEMENTED;
     } else if (str.EqualsLiteral("")) {
-      sourceIndex = GetPreviousIndex();
+      sourceIndex = GetCurrentResultIndex();
     } else {
       bool inputExists = mImageTable.Get(str, &sourceIndex);
       if (!inputExists)
@@ -418,10 +414,15 @@ nsSVGFilterInstance::GetOrCreateSourceIndicesForNextPrimitive(
 
 int32_t nsSVGFilterInstance::GetOrCreateSourceAlphaIndex()
 {
+  // Lazily return the SourceAlpha index, if we've already created a 
+  // FilterPrimitiveDescription that generates SourceAlpha or determined that
+  // we can use the SourceAlpha of the unfiltered image.
   if (mSourceAlphaAvailable) {
     return mSourceAlphaIndex;
   }
 
+  // If we are the first filter in the chain, we can just reference the
+  // SourceAlpha of the unfiltered image.
   if (mSourceGraphicIndex < 0) {
     mSourceAlphaAvailable = true;
     mSourceAlphaIndex = FilterPrimitiveDescription::kPrimitiveIndexSourceAlpha;

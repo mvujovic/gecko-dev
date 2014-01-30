@@ -168,9 +168,11 @@ private:
    */
   int32_t GetOrCreateSourceAlphaIndex();
 
-  int32_t GetPreviousIndex();
-
-  int32_t ComputeSourceGraphicIndex();
+  /**
+   * Get the index of the last FilterPrimitiveDescription in the list,
+   * or the SourceGraphic, if there are no FilterPrimitiveDescriptions yet.
+   */
+  int32_t GetCurrentResultIndex();
 
   void AttachSources(FilterPrimitiveDescription& aDescr,
                      nsSVGFE* aPrimitiveElement,

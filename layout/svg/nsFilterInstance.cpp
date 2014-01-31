@@ -94,9 +94,8 @@ nsFilterInstance::ComputeUserSpaceToFrameSpaceInCSSPxTransform()
         static_cast<nsSVGElement*>(mTargetFrame->GetContent())->
           PrependLocalTransformsTo(gfxMatrix());
     } else {
-      gfxPoint targetsUserSpaceOffset =
-        nsLayoutUtils::RectToGfxRect(mTargetFrame->GetRect(),
-                                     mAppUnitsPerCSSPx).TopLeft();
+      gfxPoint targetsUserSpaceOffset = nsLayoutUtils::RectToGfxRect(
+        mTargetFrame->GetRect(), mAppUnitsPerCSSPx).TopLeft();
       userToFrameSpaceInCSSPx.Translate(-targetsUserSpaceOffset);
     }
   }
@@ -305,7 +304,7 @@ nsFilterInstance::ComputeOverallFilterMetrics()
     mDeviceSpaceToFilterSpaceTransform.Invert();
   }
 
-  // Compute filter space to frame space transform.
+  // Compute filter space to frame space in CSS pixels transform.
   mFilterSpaceToFrameSpaceInCSSPxTransform =
     filterToUserSpace * ComputeUserSpaceToFrameSpaceInCSSPxTransform();
 
@@ -404,9 +403,9 @@ nsFilterInstance::BuildSourcePaint(SourceInfo *aSource,
 
   gfx->Save();
 
-  gfxMatrix matrix =
-    nsSVGUtils::GetCanvasTM(mTargetFrame, nsISVGChildFrame::FOR_PAINTING,
-                            mTransformRoot);
+  gfxMatrix matrix = nsSVGUtils::GetCanvasTM(mTargetFrame,
+                                             nsISVGChildFrame::FOR_PAINTING,
+                                             mTransformRoot);
   if (!matrix.IsSingular()) {
     gfx->Multiply(matrix);
     gfx->Rectangle(r);
@@ -571,7 +570,9 @@ nsFilterInstance::Render(gfxContext* aContext)
     resultImageSource = resultImageDT->Snapshot();
   }
 
-  nsSVGUtils::CompositeSurfaceMatrix(aContext, resultImage, resultImageSource,
+  nsSVGUtils::CompositeSurfaceMatrix(aContext, 
+                                     resultImage,
+                                     resultImageSource,
                                      filterRect.TopLeft(),
                                      mFilterSpaceToDeviceSpaceTransform);
 
@@ -592,7 +593,9 @@ nsFilterInstance::ComputePostFilterDirtyRect(nsRect* aPostFilterDirtyRect)
   FilterDescription filter(mPrimitiveDescrs, filterSpaceBounds);
   nsIntRegion resultChangeRegion =
     FilterSupport::ComputeResultChangeRegion(filter,
-      mPreFilterDirtyRect, nsIntRegion(), nsIntRegion());
+                                             mPreFilterDirtyRect,
+                                             nsIntRegion(),
+                                             nsIntRegion());
   *aPostFilterDirtyRect =
     FilterSpaceToFrameSpace(resultChangeRegion.GetBounds());
 
@@ -639,8 +642,8 @@ nsFilterInstance::FilterSpaceToFrameSpace(const nsIntRect& aRect) const
   if (aRect.IsEmpty()) {
     return nsRect();
   }
+
   gfxRect r(aRect.x, aRect.y, aRect.width, aRect.height);
   r = mFilterSpaceToFrameSpaceInCSSPxTransform.TransformBounds(r);
-  int32_t appUnitsPerCSSPx = mTargetFrame->PresContext()->AppUnitsPerCSSPixel();
-  return nsLayoutUtils::RoundGfxRectToAppRect(r, appUnitsPerCSSPx);
+  return nsLayoutUtils::RoundGfxRectToAppRect(r, mAppUnitsPerCSSPx);
 }

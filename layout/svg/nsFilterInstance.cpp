@@ -105,22 +105,22 @@ nsFilterInstance::ComputeUserSpaceToFrameSpaceInCSSPxTransform()
 }
 
 nsFilterInstance::nsFilterInstance(
-  nsIFrame *aTarget,
+  nsIFrame *aTargetFrame,
   const nsTArray<nsStyleFilter>& aFilters,
-  nsSVGFilterPaintCallback *aPaint,
+  nsSVGFilterPaintCallback *aPaintCallback,
   const nsRect *aPostFilterDirtyRect,
   const nsRect *aPreFilterDirtyRect,
   const nsRect *aPreFilterVisualOverflowRectOverride,
   const gfxRect *aOverrideBBox,
-  nsIFrame* aTransformRoot)
+  nsIFrame* aTransformRoot) :
+    mTargetFrame(aTargetFrame),
+    mFilters(aFilters),
+    mPaintCallback(aPaintCallback),
+    mTransformRoot(aTransformRoot),
+    mInitialized(false)
 {
-  mInitialized = false;
-  mTargetFrame = aTarget;
-  mFilters = aFilters;
-  mPaintCallback = aPaint;
   mTargetBBox = aOverrideBBox ? 
     *aOverrideBBox : nsSVGUtils::GetBBox(mTargetFrame);
-  mTransformRoot = aTransformRoot;
 
   // Get the app units to CSS pixels ratio.
   mAppUnitsPerCSSPx = mTargetFrame->PresContext()->AppUnitsPerCSSPixel();

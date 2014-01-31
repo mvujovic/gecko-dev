@@ -52,9 +52,9 @@ class nsFilterInstance
   typedef mozilla::gfx::FilterPrimitiveDescription FilterPrimitiveDescription;
 
 public:
-  nsFilterInstance(nsIFrame *aTarget,
+  nsFilterInstance(nsIFrame *aTargetFrame,
                    const nsTArray<nsStyleFilter>& aFilters,
-                   nsSVGFilterPaintCallback *aPaint,
+                   nsSVGFilterPaintCallback *aPaintCallback,
                    const nsRect *aPostFilterDirtyRect,
                    const nsRect *aPreFilterDirtyRect,
                    const nsRect *aPreFilterVisualOverflowRectOverride,
@@ -178,7 +178,6 @@ private:
    */
   nsresult ComputeOverallFilterMetrics();
 
-
   /**
    * Sets this filter instance's pre and post filter dirty rects.
    */
@@ -220,36 +219,27 @@ private:
    */
 
   /**
-   * Transforms a rectangle in user space to filter space.
+   * Transform rectangles between user space and filter space.
    */
   nsIntRect UserSpaceToFilterSpace(const gfxRect& aUserSpace,
                                    bool* aOverflow = nullptr) const;
-
-  /**
-   * Transforms a rectangle in filter space to user space.
-   */
+  
   gfxRect FilterSpaceToUserSpace(const nsIntRect& aFilterSpace) const;
 
+  
   /**
-   * Transforms a rectangle in user space to intermediate space.
+   * Transform rectangles between user space and intermediate space.
    */
   nsIntRect UserSpaceToIntermediateSpace(const gfxRect& aUserSpace,
                                          bool* aOverflow = nullptr) const;
 
-  /**
-   * Transforms a rectangle in intermediate space to user space.
-   */
   gfxRect IntermediateSpaceToUserSpace(
     const nsIntRect& aIntermediateSpace) const;
 
   /**
-   * Transforms a rectangle in frame space to filter space.
+   * Transform rectangles between frame space and filter space.
    */
   nsIntRect FrameSpaceToFilterSpace(const nsRect* aFrameSpace) const;
-
-  /**
-   * Transforms a rectangle in filter space to frame space.
-   */
   nsRect FilterSpaceToFrameSpace(const nsIntRect& aRect) const;
 
   /**
@@ -269,7 +259,20 @@ private:
    */
   nsIFrame* mTargetFrame;
 
+  /**
+   * The chain of SVG and CSS filters from the style system.
+   */
+  nsTArray<nsStyleFilter> mFilters;
+
+  /**
+   * Callback for painting the source graphic.
+   */
   nsSVGFilterPaintCallback* mPaintCallback;
+
+  /**
+   * Transform root for painting.
+   */
+  nsIFrame* mTransformRoot;
 
   /**
    * The SVG bbox of the element that is being filtered, in user space.
@@ -325,16 +328,32 @@ private:
    */
   nsIntRect mPreFilterDirtyRect;
 
+  /**
+   * Conversion factor so that we can return values in frame space,
+   * in CSS pixels.
+   */
   uint32_t mAppUnitsPerCSSPx;
 
+  /**
+   * Surfaces and metrics for various source graphics.
+   */
   SourceInfo mSourceGraphic;
   SourceInfo mFillPaint;
   SourceInfo mStrokePaint;
-  nsIFrame* mTransformRoot;
-  nsTArray<mozilla::RefPtr<SourceSurface>> mInputImages;
+
+  /**
+   * The filter graph that we generate and pass to the backend.
+   */
   nsTArray<FilterPrimitiveDescription> mPrimitiveDescrs;
 
-  nsTArray<nsStyleFilter> mFilters;
+  /**
+   * The list of feImages we've collected from SVG filters in the filter chain.
+   */
+  nsTArray<mozilla::RefPtr<SourceSurface>> mInputImages;
+
+  /**
+   * True if this filter instance was successfully initialized.
+   */
   bool mInitialized;
 };
 

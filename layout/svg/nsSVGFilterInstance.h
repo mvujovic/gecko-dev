@@ -199,6 +199,10 @@ private:
                                           int32_t aInputIndex,
                                           int32_t aSourceIndex);
 
+  /**
+   * Adds a freshly minted FilterPrimitiveDescription to the
+   * FilterPrimitiveDescription(s) list and adds its result name to a map.
+   */
   void AppendPrimitiveDescription(const FilterPrimitiveDescription& aDescr,
                                   nsSVGFE* aPrimitiveElement);
 
@@ -208,7 +212,14 @@ private:
   static gfxRect ToGfxRect(const IntRect& rect);
   static IntRect ToIntRect(const nsIntRect& rect);
 
+  /**
+   * The frame for the element that is currently being filtered.
+   */
   nsIFrame* mTargetFrame;
+
+  /**
+   * The SVG bbox of the element that is being filtered, in user space.
+   */
   gfxRect mTargetBBox;
 
   /**
@@ -218,29 +229,73 @@ private:
   gfxMatrix mIntermediateSpaceToUserSpaceTransform;
 
   /**
-   * The bounds of the <filter> element's result, in different spaces.
+   * The bounds of the filter region, in different spaces.
    */
   gfxRect mUserSpaceBounds;
   IntRect mIntermediateSpaceBounds;
   IntRect mFilterSpaceBounds;
 
   /**
-   * The 'primitiveUnits' attribute value (objectBoundingBox or userSpaceOnUse).
+   * The "primitiveUnits" attribute value (objectBoundingBox or userSpaceOnUse).
    */
   uint16_t mPrimitiveUnits;
 
+  /**
+   * The style information for the SVG filter. Includes the SVG filter URL.
+   */
   nsStyleFilter mFilter;
+
+  /**
+   * The list of FilterPrimitiveDescription(s), populated with primitives 
+   * from previous SVG and CSS filters in the filter chain.
+   *
+   * This SVG filter will add its primitives to the list.
+   */
   nsTArray<FilterPrimitiveDescription>& mPrimitiveDescrs;
+
+  /**
+   * The list of feImages we've collected from previous SVG and CSS filters in
+   * the filter chain.
+   *
+   * This SVG filter will add its own feImages to the list.
+   */
   nsTArray<mozilla::RefPtr<SourceSurface>>& mInputImages;
+
+  /**
+   * The index of the FilterPrimitiveDescription that this SVG filter should use
+   * as its SourceGraphic, or the SourceGraphic keyword index
+   * (kPrimitiveIndexSourceGraphic) if there are no FilterPrimitiveDescriptions.
+   */
   int32_t mSourceGraphicIndex;
+
+  /**
+   * True if we've determined the SourceAlpha index.
+   */
   bool mSourceAlphaAvailable;
+
+  /**
+   * The index of the FilterPrimitiveDescription we've created that generates
+   * the SourceAlpha image.
+   *
+   * If we're the first filter in the chain, this will be the keyword index for
+   * SourceAlpha (kPrimitiveIndexSourceAlpha).
+   */
   int32_t mSourceAlphaIndex;
 
-  // Maps source image name to source index.
-  nsDataHashtable<nsStringHashKey, int32_t> mImageTable;;
+  /**
+   * Maps result names to FilterPrimitiveDescription indexes.
+   * (e.g. <filter result="resultName" ...>)
+   */
+  nsDataHashtable<nsStringHashKey, int32_t> mImageTable;
 
+  /**
+   * True if this filter instance was successfully initialized.
+   */
   bool mInitialized;
 
+  /**
+   * The frame and element for the <filter> element.
+   */
   nsSVGFilterFrame* mFilterFrame;
   const SVGFilterElement* mFilterElement;
 

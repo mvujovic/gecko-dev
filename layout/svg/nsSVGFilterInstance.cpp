@@ -39,7 +39,7 @@ nsSVGFilterInstance::nsSVGFilterInstance(
     mPrimitiveDescrs(aPrimitiveDescrs),
     mInputImages(aInputImages),
     mSourceAlphaAvailable(false),
-    mImageTable(10),
+    mResultNameToIndexMap(10),
     mInitialized(false)
 {
   // Get the filter frame.
@@ -327,7 +327,7 @@ nsSVGFilterInstance::AppendPrimitiveDescription(
   aPrimitiveElement->GetResultImageName().GetAnimValue(
     resultName, aPrimitiveElement);
   uint32_t primitiveDescrIndex = mPrimitiveDescrs.Length() - 1;
-  mImageTable.Put(resultName, primitiveDescrIndex);
+  mResultNameToIndexMap.Put(resultName, primitiveDescrIndex);
 }
 
 void
@@ -405,7 +405,7 @@ nsSVGFilterInstance::GetOrCreateSourceIndicesForNextPrimitive(
     } else if (str.EqualsLiteral("")) {
       sourceIndex = GetCurrentResultIndex();
     } else {
-      bool inputExists = mImageTable.Get(str, &sourceIndex);
+      bool inputExists = mResultNameToIndexMap.Get(str, &sourceIndex);
       if (!inputExists)
         return NS_ERROR_FAILURE;
     }

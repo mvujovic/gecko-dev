@@ -286,7 +286,7 @@ private:
    * Maps result names to FilterPrimitiveDescription indexes.
    * (e.g. <filter result="resultName" ...>)
    */
-  nsDataHashtable<nsStringHashKey, int32_t> mImageTable;
+  nsDataHashtable<nsStringHashKey, int32_t> mResultNameToIndexMap;
 
   /**
    * True if this filter instance was successfully initialized.

@@ -51,6 +51,10 @@ public:
     nsTArray<FilterPrimitiveDescription>& aPrimitiveDescrs,
     nsTArray<mozilla::RefPtr<SourceSurface>>& aInputImages);
 
+  /**
+   * True if this filter instance was successfully initialized. Check after
+   * calling the constructor.
+   */
   bool IsInitialized() const { return mInitialized; }
 
   /**
@@ -73,6 +77,9 @@ public:
    */
   Point3D ConvertLocation(const Point3D& aPoint) const;
 
+  /**
+   * Transform rectangles between user space and filter space.
+   */
   IntRect UserSpaceToFilterSpace(const gfxRect& aUserSpace) const;
   gfxRect FilterSpaceToUserSpace(const IntRect& aFilterSpace) const;
 

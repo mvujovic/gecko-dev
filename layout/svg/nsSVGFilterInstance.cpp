@@ -91,18 +91,16 @@ nsSVGFilterInstance::nsSVGFilterInstance(
 }
 
 float 
-nsSVGFilterInstance::GetPrimitiveNumber(
-  uint8_t aCtxType,
-  const nsSVGNumber2 *aNumber) const
+nsSVGFilterInstance::GetPrimitiveNumber(uint8_t aCtxType,
+                                        const nsSVGNumber2 *aNumber) const
 {
   return GetPrimitiveNumber(aCtxType, aNumber->GetAnimValue());
 }
 
 float
-nsSVGFilterInstance::GetPrimitiveNumber(
-  uint8_t aCtxType, 
-  const nsSVGNumberPair *aNumberPair,
-  nsSVGNumberPair::PairIndex aIndex) const
+nsSVGFilterInstance::GetPrimitiveNumber(uint8_t aCtxType, 
+                                        const nsSVGNumberPair *aNumberPair,
+                                        nsSVGNumberPair::PairIndex aIndex) const
 {
   return GetPrimitiveNumber(aCtxType, aNumberPair->GetAnimValue(aIndex));
 }
@@ -111,8 +109,7 @@ float
 nsSVGFilterInstance::GetPrimitiveNumber(uint8_t aCtxType, float aValue) const
 {
   nsSVGLength2 val;
-  val.Init(aCtxType, 0xff, aValue,
-           nsIDOMSVGLength::SVG_LENGTHTYPE_NUMBER);
+  val.Init(aCtxType, 0xff, aValue, nsIDOMSVGLength::SVG_LENGTHTYPE_NUMBER);
 
   float value;
   if (mPrimitiveUnits == SVG_UNIT_TYPE_OBJECTBOUNDINGBOX) {
@@ -149,11 +146,14 @@ nsSVGFilterInstance::ConvertLocation(const Point3D& aPoint) const
   val[3].Init(SVGContentUtils::Y, 0xff, 0,
               nsIDOMSVGLength::SVG_LENGTHTYPE_NUMBER);
 
-  gfxRect userSpaceArea = nsSVGUtils::GetRelativeRect(
-    mPrimitiveUnits, val, mTargetBBox, mTargetFrame);
+  gfxRect userSpaceArea = nsSVGUtils::GetRelativeRect(mPrimitiveUnits,
+                                                      val,
+                                                      mTargetBBox,
+                                                      mTargetFrame);
   IntRect filterSpaceArea = UserSpaceToFilterSpace(userSpaceArea);
-  return Point3D(filterSpaceArea.X(), filterSpaceArea.Y(),
-    GetPrimitiveNumber(SVGContentUtils::XY, aPoint.z));
+  return Point3D(filterSpaceArea.X(), 
+                 filterSpaceArea.Y(),
+                 GetPrimitiveNumber(SVGContentUtils::XY, aPoint.z));
 }
 
 nsSVGFilterFrame*
@@ -326,6 +326,7 @@ nsSVGFilterInstance::AppendPrimitiveDescription(
   nsAutoString resultName;
   aPrimitiveElement->GetResultImageName().GetAnimValue(
     resultName, aPrimitiveElement);
+
   uint32_t primitiveDescrIndex = mPrimitiveDescrs.Length() - 1;
   mResultNameToIndexMap.Put(resultName, primitiveDescrIndex);
 }
@@ -337,14 +338,15 @@ nsSVGFilterInstance::AttachSourcesToPrimitiveDescription(
   nsTArray<int32_t>& aSourceIndices)
 {
   for (uint32_t i = 0; i < aSourceIndices.Length(); i++) {
-    AttachSourceToPrimitiveDescription(
-      aDescr, aPrimitiveElement, i, aSourceIndices[i]);
+    AttachSourceToPrimitiveDescription(aDescr,
+                                       aPrimitiveElement,
+                                       i,
+                                       aSourceIndices[i]);
   }
 
   // The output color space is whatever in1 is if there is an in1.
   ColorSpace outputColorSpace = aSourceIndices.Length() > 0 ?
-    aDescr.InputColorSpace(0) :
-    aPrimitiveElement->GetOutputColorSpace();
+    aDescr.InputColorSpace(0) : aPrimitiveElement->GetOutputColorSpace();
   aDescr.SetOutputColorSpace(outputColorSpace);
 }
 
@@ -534,11 +536,9 @@ nsSVGFilterInstance::ClipLastPrimitiveDescriptionByFilterRegion()
   if (numPrimitiveDescrs <= 0)
     return;
 
-  FilterPrimitiveDescription& descr =
-    mPrimitiveDescrs[numPrimitiveDescrs - 1];
+  FilterPrimitiveDescription& descr = mPrimitiveDescrs[numPrimitiveDescrs - 1];
   IntRect primitiveSubregion = descr.PrimitiveSubregion();
-  primitiveSubregion =
-    primitiveSubregion.Intersect(mIntermediateSpaceBounds);
+  primitiveSubregion = primitiveSubregion.Intersect(mIntermediateSpaceBounds);
   descr.SetPrimitiveSubregion(primitiveSubregion);
 }
 

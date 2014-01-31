@@ -61,6 +61,10 @@ public:
                    const gfxRect *aOverrideBBox = nullptr,
                    nsIFrame* aTransformRoot = nullptr);
 
+  /**
+   * True if this filter instance was successfully initialized. Check after
+   * calling the constructor.
+   */
   bool IsInitialized() const { return mInitialized; }
 
   /**
